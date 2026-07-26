@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BC Real Estate Calculator Hub – Spot Group</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #000000;
+      --card-bg: #e5e7eb;              /* light grey main card */
+      --accent: #111827;               /* deep slate */
+      --accent-soft: rgba(15, 23, 42, 0.06);
+      --text-main: #111827;
+      --text-muted: #4b5563;
+      --border-subtle: #d1d5db;
+      --error: #b91c1c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    .app {
+      max-width: 760px;
+      margin: 24px auto;
+      padding: 24px 20px 26px;
+      background: var(--card-bg);
+      border-radius: 22px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .logo-wrap {
+      width: 60px;
+      height: 60px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0;
+      letter-spacing: 0.03em;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin: 2px 0 18px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .accent-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .accordion-item {
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 12px;
+      overflow: hidden;
+      background: #f3f4f6;
+    }
+
+    .accordion-header {
+      width: 100%;
+      text-align: left;
+      padding: 11px 14px;
+      background: #f3f4f6;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .accordion-header span.label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .accordion-header .chevron {
+      font-size: 0.9rem;
+      transition: transform 0.15s ease;
+    }
+
+    .accordion-item.open .accordion-header {
+      background: #e5e7eb;
+    }
+
+    .accordion-item.open .chevron {
+      transform: rotate(90deg);
+    }
+
+    .accordion-body {
+      display: none;
+      padding: 14px 16px 16px;
+      background: #ffffff;
+    }
+
+    .accordion-item.open .accordion-body {
+      display: block;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.86rem;
+      color: var(--text-main);
+    }
+
+    .sub-label {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 0.92rem;
+      border-radius: 10px;
+      border: 1px solid #d4d4d8;
+      background: #ffffff;
+      color: #000000;
+    }
+
+    input::placeholder {
+      color: #6b7280;
+    }
+
+    input[readonly] {
+      background-color: #f3f4f6;
+      color: var(--text-muted);
+      border-color: var(--border-subtle);
+    }
+
+    input.suggested {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .inline-fields {
+      display: flex;
+      gap: 10px;
+    }
+
+    .inline-fields .field {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    button[type="submit"] {
+      margin-top: 6px;
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #f9fafb;
+    }
+
+    button[type="submit"]:hover {
+      filter: brightness(1.05);
+    }
+
+    .subdued {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .error {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--error);
+    }
+
+    .result-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.9rem;
+    }
+
+    .result-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .result-label {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .result-value {
+      font-weight: 600;
+      text-align: right;
+      color: var(--accent);
+    }
+
+    .note {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      border-radius: 4px;
+    }
+
+    /* Vertical commission rate layout */
+    .rate-table {
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 10px 10px;
+      background: #f9fafb;
+    }
+
+    .rate-header,
+    .rate-row {
+      display: grid;
+      grid-template-columns: minmax(0, 40%) repeat(2, minmax(0, 1fr));
+      column-gap: 10px;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+
+    .rate-header {
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .rate-row-label {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .rate-row input {
+      margin-top: 3px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 18px 14px 20px;
+      }
+      .inline-fields {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="app-header">
+      <div class="logo-wrap">
+        <!-- Inline Spot Group smiley logo (no external file needed) -->
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="40"
+                  fill="none"
+                  stroke="#e5e0d2"
+                  stroke-width="4" />
+          <!-- eyes -->
+          <path d="M35 45 Q 40 40 45 45"
+                fill="none"
+                stroke="#e5e0d2"
+                stroke-linecap="round"
+                stroke-width="4" />
+          <path d="M55 45 Q 60 40 65 45"
+                fill="none"
+                stroke="#e5e0d2"
+                stroke-linecap="round"
+                stroke-width="4" />
+          <!-- smile -->
+          <path d="M35 60 Q 50 75 65 60"
+                fill="none"
+                stroke="#e5e0d2"
+                stroke-linecap="round"
+                stroke-width="4" />
+          <!-- text -->
+          <text x="50" y="84"
+                text-anchor="middle"
+                font-size="6"
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+                fill="#e5e0d2"
+                letter-spacing="1.4">
+            SPOT GROUP REAL ESTATE
+          </text>
+        </svg>
+      </div>
+      <div>
+        <h1>Spot Group Deal Calculator</h1>
+        <p class="subtitle"></p>
+        <div class="accent-pill">
+          <span></span> • <span>In-house calculators</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rescission Calculator -->
+    <div class="accordion-item open">
+      <button class="accordion-header" type="button">
+        <span class="label">Rescission Fee (HBRP – 0.25%)</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-rescission">
+          <div class="field">
+            <label for="resc-price">Purchase Price (CAD)</label>
+            <input type="text" id="resc-price" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 880000" autocomplete="off" />
+            <div class="subdued">Type numbers only – commas appear automatically as you type.</div>
+          </div>
+          <div class="field">
+            <label for="resc-date">Offer Accepted Date (optional)</label>
+            <input type="date" id="resc-date" />
+            <div class="subdued">
+              Used to estimate the 3-business-day rescission deadline (skips weekends).
+            </div>
+          </div>
+          <button type="submit">Calculate Rescission</button>
+          <div id="resc-error" class="error"></div>
+        </form>
+
+        <div id="resc-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Purchase Price:</span>
+            <span id="resc-result-price" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Rescission Fee (0.25%):</span>
+            <span id="resc-result-fee" class="result-value"></span>
+          </div>
+          <div class="result-line" id="resc-deadline-line" style="display:none; margin-top:8px;">
+            <span class="result-label">Rescission Deadline:</span>
+            <span id="resc-result-deadline" class="result-value"></span>
+          </div>
+          <p class="note">
+            Rescission period is <strong>3 business days</strong> from acceptance. Weekends and holidays
+            don’t count legally – this tool skips weekends only.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PTT Calculator -->
+    <div class="accordion-item">
+      <button class="accordion-header" type="button">
+        <span class="label">Property Transfer Tax (Simple BC)</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-ptt">
+          <div class="field">
+            <label for="ptt-price">Purchase Price (CAD)</label>
+            <input type="text" id="ptt-price" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 880000" autocomplete="off" />
+          </div>
+          <button type="submit">Calculate PTT</button>
+          <div id="ptt-error" class="error"></div>
+        </form>
+        <div id="ptt-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Purchase Price:</span>
+            <span id="ptt-result-price" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">PTT on first $200,000 (1%):</span>
+            <span id="ptt-result-first" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">PTT on balance (2%):</span>
+            <span id="ptt-result-balance" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Total PTT:</span>
+            <span id="ptt-result-total" class="result-value"></span>
+          </div>
+          <p class="note">
+            Simple BC PTT: 1% on first $200,000, 2% on the balance. Does not handle luxury tiers or special exemptions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commission Calculator -->
+    <div class="accordion-item">
+      <button class="accordion-header" type="button">
+        <span class="label">Commission Calculator</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-commission">
+          <div class="field">
+            <label for="comm-price">Sale Price (CAD)</label>
+            <input type="text" id="comm-price" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 1100000" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label>Commission Rates (%)</label>
+            <div class="rate-table">
+              <div class="rate-header">
+                <div></div>
+                <div>1st $100,000</div>
+                <div>Balance</div>
+              </div>
+
+              <div class="rate-row">
+                <div class="rate-row-label">Total</div>
+                <div>
+                  <input type="number" id="comm-total-first-rate" value="7" step="0.01" />
+                </div>
+                <div>
+                  <input type="number" id="comm-total-rest-rate" value="4" step="0.01" />
+                </div>
+              </div>
+
+              <div class="rate-row">
+                <div class="rate-row-label">Buyer Agent</div>
+                <div>
+                  <input type="number" id="comm-buyer-first-rate" value="3.22" step="0.01" />
+                </div>
+                <div>
+                  <input type="number" id="comm-buyer-rest-rate" value="1.15" step="0.01" />
+                </div>
+              </div>
+
+              <div class="rate-row">
+                <div class="rate-row-label">Listing Agent</div>
+                <div>
+                  <input type="number" id="comm-listing-first-rate" value="3.78" step="0.01" readonly />
+                </div>
+                <div>
+                  <input type="number" id="comm-listing-rest-rate" value="2.85" step="0.01" readonly />
+                </div>
+              </div>
+            </div>
+            <div class="subdued">
+              Listing side is automatically calculated as Total minus Buyer for each tier.
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="checkbox-label">
+              <input type="checkbox" id="comm-apply-gst" />
+              <span>Apply 5% GST to commission totals</span>
+            </label>
+            <div class="subdued">
+              Commissions are shown without GST by default. Tick to see GST and total including GST.
+            </div>
+          </div>
+
+          <button type="submit">Calculate Commission</button>
+          <div id="comm-error" class="error"></div>
+        </form>
+        <div id="comm-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Total Commission (no GST):</span>
+            <span id="comm-result-total" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Buyer Agent (no GST):</span>
+            <span id="comm-result-buyer" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Listing Agent (no GST):</span>
+            <span id="comm-result-listing" class="result-value"></span>
+          </div>
+          <div class="result-line" id="comm-gst-total-line" style="display:none;">
+            <span class="result-label">GST on Total (5%):</span>
+            <span id="comm-result-gst-total" class="result-value"></span>
+          </div>
+          <div class="result-line" id="comm-total-with-gst-line" style="display:none;">
+            <span class="result-label">Total incl. GST:</span>
+            <span id="comm-result-total-with-gst" class="result-value"></span>
+          </div>
+          <p class="note">
+            Default structure: 7% / 4% total, with buyer at 3.22% / 1.15% and listing as the difference. All rates are editable.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seller Net Sheet -->
+    <div class="accordion-item">
+      <button class="accordion-header" type="button">
+        <span class="label">Seller Net Sheet (Simple)</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-net">
+          <div class="field">
+            <label for="net-sale-price">Sale Price (CAD)</label>
+            <input type="text" id="net-sale-price" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 1100000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="net-mortgage">Mortgage Payoff (CAD)</label>
+            <input type="text" id="net-mortgage" class="currency-input" placeholder="e.g. 650000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="net-commission">Total Commission (CAD)</label>
+            <input type="text" id="net-commission" class="currency-input" placeholder="e.g. 35000" autocomplete="off" />
+            <div class="subdued">You can pull this from the Commission calculator.</div>
+          </div>
+          <div class="field">
+            <label for="net-other">Other Costs (legal, adjustments, etc.)</label>
+            <input type="text" id="net-other" class="currency-input" placeholder="e.g. 4500" autocomplete="off" />
+          </div>
+          <button type="submit">Calculate Net to Seller</button>
+          <div id="net-error" class="error"></div>
+        </form>
+        <div id="net-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Sale Price:</span>
+            <span id="net-result-sale" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Total Deductions:</span>
+            <span id="net-result-deductions" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Estimated Net to Seller:</span>
+            <span id="net-result-net" class="result-value"></span>
+          </div>
+          <p class="note">
+            Simple estimate for quick conversations – does not replace a detailed statement of adjustments.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mortgage Payment Calculator -->
+    <div class="accordion-item">
+      <button class="accordion-header" type="button">
+        <span class="label">Mortgage Payment Calculator</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-mortgage">
+          <div class="field">
+            <label for="mort-loan">Loan Amount (CAD)</label>
+            <input type="text" id="mort-loan" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 700000" autocomplete="off" />
+          </div>
+          <div class="inline-fields">
+            <div class="field">
+              <label for="mort-rate">Interest Rate (% per year)</label>
+              <input type="number" id="mort-rate" value="5.5" step="0.01" />
+            </div>
+            <div class="field">
+              <label for="mort-years">Amortization (years)</label>
+              <input type="number" id="mort-years" value="25" step="1" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="mort-frequency">Payment Frequency</label>
+            <select id="mort-frequency">
+              <option value="monthly">Monthly</option>
+              <option value="biweekly">Bi-weekly (26/yr)</option>
+            </select>
+          </div>
+          <button type="submit">Calculate Payment</button>
+          <div id="mort-error" class="error"></div>
+        </form>
+        <div id="mort-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Loan Amount:</span>
+            <span id="mort-result-loan" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Payment:</span>
+            <span id="mort-result-payment" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Payments per Year:</span>
+            <span id="mort-result-peryear" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Total Interest (full amortization):</span>
+            <span id="mort-result-interest" class="result-value"></span>
+          </div>
+          <p class="note">
+            Uses standard mortgage math with fixed rate over full amortization. Real-world payments can vary by lender and product.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flip / Investment Profit Calculator -->
+    <div class="accordion-item">
+      <button class="accordion-header" type="button">
+        <span class="label">Flip / Investment Profit</span>
+        <span class="chevron">▶</span>
+      </button>
+      <div class="accordion-body">
+        <form id="form-flip">
+          <div class="field">
+            <label for="flip-purchase">Purchase Price (CAD)</label>
+            <input type="text" id="flip-purchase" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 900000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="flip-reno">Renovation / Construction Costs (CAD)</label>
+            <input type="text" id="flip-reno" class="currency-input" placeholder="e.g. 80000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="flip-holding">Holding Costs (interest, taxes, utilities, etc.)</label>
+            <input type="text" id="flip-holding" class="currency-input" placeholder="e.g. 18000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="flip-other">Other Costs (realtor fees, legal, misc.)</label>
+            <input type="text" id="flip-other" class="currency-input" placeholder="e.g. 40000" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="flip-sale">Resale Price (CAD)</label>
+            <input type="text" id="flip-sale" class="currency-input" data-suggest-price="true"
+                   placeholder="e.g. 1200000" autocomplete="off" />
+          </div>
+          <button type="submit">Calculate Profit</button>
+          <div id="flip-error" class="error"></div>
+        </form>
+        <div id="flip-results" class="result-box" style="display:none;">
+          <div class="result-line">
+            <span class="result-label">Total Cost:</span>
+            <span id="flip-result-cost" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Profit:</span>
+            <span id="flip-result-profit" class="result-value"></span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">ROI (Profit ÷ Total Cost):</span>
+            <span id="flip-result-roi" class="result-value"></span>
+          </div>
+          <p class="note">
+            Quick flip math – great for comparing opportunities. Does not include tax implications.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Helpers =====
+    const currency = new Intl.NumberFormat("en-CA", {
+      style: "currency",
+      currency: "CAD",
+      maximumFractionDigits: 2
+    });
+
+    function formatDigitsWithCommas(digits) {
+      return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function parseCurrencyString(str) {
+      if (!str) return 0;
+      const cleaned = str.replace(/[^0-9.]/g, "");
+      if (!cleaned) return 0;
+      return parseFloat(cleaned);
+    }
+
+    function addBusinessDays(startDate, days) {
+      let current = new Date(startDate.getTime());
+      let added = 0;
+      while (added < days) {
+        current.setDate(current.getDate() + 1);
+        const day = current.getDay(); // 0 Sun, 6 Sat
+        if (day !== 0 && day !== 6) {
+          added++;
+        }
+      }
+      return current;
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("en-CA", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }).format(date);
+    }
+
+    // Remember last main price typed so we can suggest it in other tabs
+    let lastPriceDigits = "";
+
+    function attachCurrencyFormatting(input) {
+      input.addEventListener("input", () => {
+        if (input.classList.contains("suggested")) return;
+
+        const digits = input.value.replace(/\D/g, "");
+        if (!digits) {
+          input.value = "";
+          return;
+        }
+        const formatted = formatDigitsWithCommas(digits);
+        input.value = formatted;
+        const len = formatted.length;
+        input.setSelectionRange(len, len);
+
+        if (input.dataset.suggestPrice === "true") {
+          lastPriceDigits = digits;
+        }
+      });
+    }
+
+    function attachSuggestionBehavior(input) {
+      input.addEventListener("focus", () => {
+        if (!lastPriceDigits) return;
+        if (input.value.trim() !== "") return;
+        const formatted = formatDigitsWithCommas(lastPriceDigits);
+        input.value = formatted;
+        input.classList.add("suggested");
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (!input.classList.contains("suggested")) return;
+
+        // Space = accept suggestion
+        if (e.key === " ") {
+          e.preventDefault();
+          input.classList.remove("suggested");
+          const len = input.value.length;
+          input.setSelectionRange(len, len);
+          return;
+        }
+
+        // Number key = replace suggestion with that digit
+        if (e.key >= "0" && e.key <= "9") {
+          e.preventDefault();
+          input.classList.remove("suggested");
+          input.value = e.key;
+          const digits = input.value.replace(/\D/g, "");
+          const formatted = formatDigitsWithCommas(digits);
+          input.value = formatted;
+          const len = formatted.length;
+          input.setSelectionRange(len, len);
+          return;
+        }
+
+        // Backspace/Delete = clear
+        if (e.key === "Backspace" || e.key === "Delete") {
+          e.preventDefault();
+          input.classList.remove("suggested");
+          input.value = "";
+          return;
+        }
+        // Other keys (Tab, arrows, etc.) pass through
+      });
+    }
+
+    // Attach currency behaviour to all money fields
+    document.querySelectorAll(".currency-input").forEach((input) => {
+      attachCurrencyFormatting(input);
+      if (input.dataset.suggestPrice === "true") {
+        attachSuggestionBehavior(input);
+      }
+    });
+
+    // ===== Accordion behaviour (each tab independent) =====
+    document.querySelectorAll(".accordion-header").forEach((header) => {
+      header.addEventListener("click", () => {
+        const item = header.parentElement;
+        item.classList.toggle("open");
+      });
+    });
+
+    // ===== Rescission Calculator =====
+    (function () {
+      const form = document.getElementById("form-rescission");
+      const priceInput = document.getElementById("resc-price");
+      const dateInput = document.getElementById("resc-date");
+      const errorDiv = document.getElementById("resc-error");
+
+      const resultsBox = document.getElementById("resc-results");
+      const resultPrice = document.getElementById("resc-result-price");
+      const resultFee = document.getElementById("resc-result-fee");
+      const resultDeadline = document.getElementById("resc-result-deadline");
+      const deadlineLine = document.getElementById("resc-deadline-line");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+
+        const price = parseCurrencyString(priceInput.value);
+        const dateStr = dateInput.value;
+
+        if (!price || price <= 0) {
+          errorDiv.textContent = "Please enter a valid purchase price above zero.";
+          return;
+        }
+
+        lastPriceDigits = String(Math.round(price));
+
+        const fee = price * 0.0025;
+        resultPrice.textContent = currency.format(price);
+        resultFee.textContent = currency.format(fee);
+
+        if (dateStr) {
+          const acceptedDate = new Date(dateStr + "T12:00:00");
+          if (!isNaN(acceptedDate.getTime())) {
+            const deadline = addBusinessDays(acceptedDate, 3);
+            deadlineLine.style.display = "flex";
+            resultDeadline.textContent = formatDate(deadline) + " (end of day)";
+          } else {
+            deadlineLine.style.display = "none";
+          }
+        } else {
+          deadlineLine.style.display = "none";
+        }
+
+        resultsBox.style.display = "block";
+      });
+    })();
+
+    // ===== PTT Calculator =====
+    (function () {
+      const form = document.getElementById("form-ptt");
+      const priceInput = document.getElementById("ptt-price");
+      const errorDiv = document.getElementById("ptt-error");
+
+      const resultsBox = document.getElementById("ptt-results");
+      const resultPrice = document.getElementById("ptt-result-price");
+      const resultFirst = document.getElementById("ptt-result-first");
+      const resultBalance = document.getElementById("ptt-result-balance");
+      const resultTotal = document.getElementById("ptt-result-total");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+
+        const price = parseCurrencyString(priceInput.value);
+        if (!price || price <= 0) {
+          errorDiv.textContent = "Please enter a valid purchase price above zero.";
+          return;
+        }
+
+        lastPriceDigits = String(Math.round(price));
+
+        const firstPortion = Math.min(price, 200000);
+        const balancePortion = Math.max(price - 200000, 0);
+
+        const pttFirst = firstPortion * 0.01;
+        const pttBalance = balancePortion * 0.02;
+        const total = pttFirst + pttBalance;
+
+        resultPrice.textContent = currency.format(price);
+        resultFirst.textContent = currency.format(pttFirst);
+        resultBalance.textContent = currency.format(pttBalance);
+        resultTotal.textContent = currency.format(total);
+
+        resultsBox.style.display = "block";
+      });
+    })();
+
+    // ===== Commission Calculator =====
+    (function () {
+      const form = document.getElementById("form-commission");
+      const priceInput = document.getElementById("comm-price");
+      const totalFirstInput = document.getElementById("comm-total-first-rate");
+      const buyerFirstInput = document.getElementById("comm-buyer-first-rate");
+      const listingFirstInput = document.getElementById("comm-listing-first-rate");
+      const totalRestInput = document.getElementById("comm-total-rest-rate");
+      const buyerRestInput = document.getElementById("comm-buyer-rest-rate");
+      const listingRestInput = document.getElementById("comm-listing-rest-rate");
+      const gstCheckbox = document.getElementById("comm-apply-gst");
+      const errorDiv = document.getElementById("comm-error");
+
+      const resultsBox = document.getElementById("comm-results");
+      const resultTotal = document.getElementById("comm-result-total");
+      const resultBuyer = document.getElementById("comm-result-buyer");
+      const resultListing = document.getElementById("comm-result-listing");
+      const gstTotalLine = document.getElementById("comm-gst-total-line");
+      const totalWithGstLine = document.getElementById("comm-total-with-gst-line");
+      const resultGstTotal = document.getElementById("comm-result-gst-total");
+      const resultTotalWithGst = document.getElementById("comm-result-total-with-gst");
+
+      const FIRST_TIER_CAP = 100000;
+
+      function updateListingRates() {
+        const totalFirst = parseFloat(totalFirstInput.value) || 0;
+        const buyerFirst = parseFloat(buyerFirstInput.value) || 0;
+        const totalRest = parseFloat(totalRestInput.value) || 0;
+        const buyerRest = parseFloat(buyerRestInput.value) || 0;
+
+        let listingFirst = totalFirst - buyerFirst;
+        let listingRest = totalRest - buyerRest;
+
+        if (listingFirst < 0) listingFirst = 0;
+        if (listingRest < 0) listingRest = 0;
+
+        listingFirstInput.value = listingFirst.toFixed(2).replace(/\.00$/, "");
+        listingRestInput.value = listingRest.toFixed(2).replace(/\.00$/, "");
+      }
+
+      totalFirstInput.addEventListener("input", updateListingRates);
+      buyerFirstInput.addEventListener("input", updateListingRates);
+      totalRestInput.addEventListener("input", updateListingRates);
+      buyerRestInput.addEventListener("input", updateListingRates);
+
+      updateListingRates();
+
+      function computeAndRenderCommission() {
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+        gstTotalLine.style.display = "none";
+        totalWithGstLine.style.display = "none";
+
+        const price = parseCurrencyString(priceInput.value);
+        if (!price || price <= 0) {
+          errorDiv.textContent = "Please enter a valid sale price.";
+          return false;
+        }
+
+        lastPriceDigits = String(Math.round(price));
+
+        const totalFirstRate = parseFloat(totalFirstInput.value) || 0;
+        const buyerFirstRate = parseFloat(buyerFirstInput.value) || 0;
+        const totalRestRate = parseFloat(totalRestInput.value) || 0;
+        const buyerRestRate = parseFloat(buyerRestInput.value) || 0;
+
+        const firstPortion = Math.min(price, FIRST_TIER_CAP);
+        const restPortion = Math.max(price - FIRST_TIER_CAP, 0);
+
+        const totalComm =
+          firstPortion * (totalFirstRate / 100) +
+          restPortion * (totalRestRate / 100);
+
+        const buyerComm =
+          firstPortion * (buyerFirstRate / 100) +
+          restPortion * (buyerRestRate / 100);
+
+        const listingComm = totalComm - buyerComm;
+
+        resultTotal.textContent = currency.format(totalComm);
+        resultBuyer.textContent = currency.format(buyerComm);
+        resultListing.textContent = currency.format(listingComm);
+
+        if (gstCheckbox.checked) {
+          const gstTotal = totalComm * 0.05;
+          const totalWithGst = totalComm + gstTotal;
+
+          gstTotalLine.style.display = "flex";
+          totalWithGstLine.style.display = "flex";
+          resultGstTotal.textContent = currency.format(gstTotal);
+          resultTotalWithGst.textContent = currency.format(totalWithGst);
+        }
+
+        resultsBox.style.display = "block";
+        return true;
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        computeAndRenderCommission();
+      });
+
+      gstCheckbox.addEventListener("change", function () {
+        if (priceInput.value.trim()) {
+          computeAndRenderCommission();
+        }
+      });
+    })();
+
+    // ===== Seller Net Sheet =====
+    (function () {
+      const form = document.getElementById("form-net");
+      const saleInput = document.getElementById("net-sale-price");
+      const mortInput = document.getElementById("net-mortgage");
+      const commInput = document.getElementById("net-commission");
+      const otherInput = document.getElementById("net-other");
+      const errorDiv = document.getElementById("net-error");
+
+      const resultsBox = document.getElementById("net-results");
+      const resultSale = document.getElementById("net-result-sale");
+      const resultDeductions = document.getElementById("net-result-deductions");
+      const resultNet = document.getElementById("net-result-net");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+
+        const sale = parseCurrencyString(saleInput.value);
+        const mort = parseCurrencyString(mortInput.value);
+        const comm = parseCurrencyString(commInput.value);
+        const other = parseCurrencyString(otherInput.value);
+
+        if (!sale || sale <= 0) {
+          errorDiv.textContent = "Please enter a valid sale price.";
+          return;
+        }
+
+        lastPriceDigits = String(Math.round(sale));
+
+        const deductions = mort + comm + other;
+        const net = sale - deductions;
+
+        resultSale.textContent = currency.format(sale);
+        resultDeductions.textContent = currency.format(deductions);
+        resultNet.textContent = currency.format(net);
+
+        resultsBox.style.display = "block";
+      });
+    })();
+
+    // ===== Mortgage Payment =====
+    (function () {
+      const form = document.getElementById("form-mortgage");
+      const loanInput = document.getElementById("mort-loan");
+      const rateInput = document.getElementById("mort-rate");
+      const yearsInput = document.getElementById("mort-years");
+      const freqSelect = document.getElementById("mort-frequency");
+      const errorDiv = document.getElementById("mort-error");
+
+      const resultsBox = document.getElementById("mort-results");
+      const resultLoan = document.getElementById("mort-result-loan");
+      const resultPayment = document.getElementById("mort-result-payment");
+      const resultPerYear = document.getElementById("mort-result-peryear");
+      const resultInterest = document.getElementById("mort-result-interest");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+
+        const loan = parseCurrencyString(loanInput.value);
+        const rate = parseFloat(rateInput.value);
+        const years = parseInt(yearsInput.value, 10);
+        const freq = freqSelect.value;
+
+        if (!loan || loan <= 0) {
+          errorDiv.textContent = "Please enter a valid loan amount.";
+          return;
+        }
+        if (!rate || rate <= 0 || !years || years <= 0) {
+          errorDiv.textContent = "Please enter a valid rate and amortization.";
+          return;
+        }
+
+        lastPriceDigits = String(Math.round(loan));
+
+        const paymentsPerYear = freq === "biweekly" ? 26 : 12;
+        const n = years * paymentsPerYear;
+        const r = rate / 100 / paymentsPerYear;
+
+        const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        const totalPaid = payment * n;
+        const totalInterest = totalPaid - loan;
+
+        resultLoan.textContent = currency.format(loan);
+        resultPayment.textContent = currency.format(payment);
+        resultPerYear.textContent = paymentsPerYear.toString();
+        resultInterest.textContent = currency.format(totalInterest);
+
+        resultsBox.style.display = "block";
+      });
+    })();
+
+    // ===== Flip / Investment Profit =====
+    (function () {
+      const form = document.getElementById("form-flip");
+      const purchaseInput = document.getElementById("flip-purchase");
+      const renoInput = document.getElementById("flip-reno");
+      const holdingInput = document.getElementById("flip-holding");
+      const otherInput = document.getElementById("flip-other");
+      const saleInput = document.getElementById("flip-sale");
+      const errorDiv = document.getElementById("flip-error");
+
+      const resultsBox = document.getElementById("flip-results");
+      const resultCost = document.getElementById("flip-result-cost");
+      const resultProfit = document.getElementById("flip-result-profit");
+      const resultRoi = document.getElementById("flip-result-roi");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorDiv.textContent = "";
+        resultsBox.style.display = "none";
+
+        const purchase = parseCurrencyString(purchaseInput.value);
+        const reno = parseCurrencyString(renoInput.value);
+        const holding = parseCurrencyString(holdingInput.value);
+        const other = parseCurrencyString(otherInput.value);
+        const sale = parseCurrencyString(saleInput.value);
+
+        if (!purchase || purchase <= 0 || !sale || sale <= 0) {
+          errorDiv.textContent = "Please enter both purchase and resale prices.";
+          return;
+        }
+
+        lastPriceDigits = String(Math.round(sale));
+
+        const totalCost = purchase + reno + holding + other;
+        const profit = sale - totalCost;
+        const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+        resultCost.textContent = currency.format(totalCost);
+        resultProfit.textContent = currency.format(profit);
+        resultRoi.textContent = roi.toFixed(1) + " %";
+
+        resultsBox.style.display = "block";
+      });
+    })();
+  </script>
+</body>
+</html>
