@@ -12,6 +12,7 @@ export function SiteFooter() {
             {site.agent.name} — {site.agent.title}. {site.agent.yearsExperience} years helping
             families, investors, builders and developers across the Lower Mainland.
           </p>
+          <p className="mt-4 text-sm text-white/70">{site.agent.brokerage}</p>
           <div className="mt-5 space-y-1 text-sm">
             <a className="block hover:text-brass" href={`tel:${site.agent.phone.replace(/\D/g, "")}`}>
               {site.agent.phone}

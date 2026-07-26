@@ -7,8 +7,8 @@ export const site = {
     title: "Licensed REALTOR® & Licensed Builder",
     yearsExperience: 11,
     email: "nav@spotsold.com",
-    phone: "(604) 555-0142",
-    brokerage: "Spot Group Realty",
+    phone: "(604) 999-8883",
+    brokerage: "Century 21 Coastal Realty",
   },
   areas: [
     "Vancouver",
