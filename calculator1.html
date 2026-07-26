@@ -704,37 +704,29 @@
     </div>
   </div>
 
+  <script src="src/calculators.js"></script>
   <script>
     // ===== Helpers =====
+    // Pure calculation logic lives in src/calculators.js so it can be unit
+    // tested; the DOM wiring below consumes it via the Calculators global.
+    const {
+      formatDigitsWithCommas,
+      parseCurrencyString,
+      addBusinessDays,
+      calcRescissionFee,
+      calcPTT,
+      computeListingRates,
+      computeCommission,
+      calcSellerNet,
+      calcMortgagePayment,
+      calcFlip,
+    } = Calculators;
+
     const currency = new Intl.NumberFormat("en-CA", {
       style: "currency",
       currency: "CAD",
       maximumFractionDigits: 2
     });
-
-    function formatDigitsWithCommas(digits) {
-      return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-
-    function parseCurrencyString(str) {
-      if (!str) return 0;
-      const cleaned = str.replace(/[^0-9.]/g, "");
-      if (!cleaned) return 0;
-      return parseFloat(cleaned);
-    }
-
-    function addBusinessDays(startDate, days) {
-      let current = new Date(startDate.getTime());
-      let added = 0;
-      while (added < days) {
-        current.setDate(current.getDate() + 1);
-        const day = current.getDay(); // 0 Sun, 6 Sat
-        if (day !== 0 && day !== 6) {
-          added++;
-        }
-      }
-      return current;
-    }
 
     function formatDate(date) {
       return new Intl.DateTimeFormat("en-CA", {
@@ -857,7 +849,7 @@
 
         lastPriceDigits = String(Math.round(price));
 
-        const fee = price * 0.0025;
+        const fee = calcRescissionFee(price);
         resultPrice.textContent = currency.format(price);
         resultFee.textContent = currency.format(fee);
 
@@ -903,17 +895,12 @@
 
         lastPriceDigits = String(Math.round(price));
 
-        const firstPortion = Math.min(price, 200000);
-        const balancePortion = Math.max(price - 200000, 0);
-
-        const pttFirst = firstPortion * 0.01;
-        const pttBalance = balancePortion * 0.02;
-        const total = pttFirst + pttBalance;
+        const ptt = calcPTT(price);
 
         resultPrice.textContent = currency.format(price);
-        resultFirst.textContent = currency.format(pttFirst);
-        resultBalance.textContent = currency.format(pttBalance);
-        resultTotal.textContent = currency.format(total);
+        resultFirst.textContent = currency.format(ptt.first);
+        resultBalance.textContent = currency.format(ptt.balance);
+        resultTotal.textContent = currency.format(ptt.total);
 
         resultsBox.style.display = "block";
       });
@@ -941,19 +928,13 @@
       const resultGstTotal = document.getElementById("comm-result-gst-total");
       const resultTotalWithGst = document.getElementById("comm-result-total-with-gst");
 
-      const FIRST_TIER_CAP = 100000;
-
       function updateListingRates() {
-        const totalFirst = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirst = parseFloat(buyerFirstInput.value) || 0;
-        const totalRest = parseFloat(totalRestInput.value) || 0;
-        const buyerRest = parseFloat(buyerRestInput.value) || 0;
-
-        let listingFirst = totalFirst - buyerFirst;
-        let listingRest = totalRest - buyerRest;
-
-        if (listingFirst < 0) listingFirst = 0;
-        if (listingRest < 0) listingRest = 0;
+        const { listingFirst, listingRest } = computeListingRates(
+          parseFloat(totalFirstInput.value) || 0,
+          parseFloat(buyerFirstInput.value) || 0,
+          parseFloat(totalRestInput.value) || 0,
+          parseFloat(buyerRestInput.value) || 0
+        );
 
         listingFirstInput.value = listingFirst.toFixed(2).replace(/\.00$/, "");
         listingRestInput.value = listingRest.toFixed(2).replace(/\.00$/, "");
@@ -980,36 +961,24 @@
 
         lastPriceDigits = String(Math.round(price));
 
-        const totalFirstRate = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirstRate = parseFloat(buyerFirstInput.value) || 0;
-        const totalRestRate = parseFloat(totalRestInput.value) || 0;
-        const buyerRestRate = parseFloat(buyerRestInput.value) || 0;
+        const comm = computeCommission({
+          price,
+          totalFirstRate: parseFloat(totalFirstInput.value) || 0,
+          buyerFirstRate: parseFloat(buyerFirstInput.value) || 0,
+          totalRestRate: parseFloat(totalRestInput.value) || 0,
+          buyerRestRate: parseFloat(buyerRestInput.value) || 0,
+          applyGst: gstCheckbox.checked,
+        });
 
-        const firstPortion = Math.min(price, FIRST_TIER_CAP);
-        const restPortion = Math.max(price - FIRST_TIER_CAP, 0);
-
-        const totalComm =
-          firstPortion * (totalFirstRate / 100) +
-          restPortion * (totalRestRate / 100);
-
-        const buyerComm =
-          firstPortion * (buyerFirstRate / 100) +
-          restPortion * (buyerRestRate / 100);
-
-        const listingComm = totalComm - buyerComm;
-
-        resultTotal.textContent = currency.format(totalComm);
-        resultBuyer.textContent = currency.format(buyerComm);
-        resultListing.textContent = currency.format(listingComm);
+        resultTotal.textContent = currency.format(comm.total);
+        resultBuyer.textContent = currency.format(comm.buyer);
+        resultListing.textContent = currency.format(comm.listing);
 
         if (gstCheckbox.checked) {
-          const gstTotal = totalComm * 0.05;
-          const totalWithGst = totalComm + gstTotal;
-
           gstTotalLine.style.display = "flex";
           totalWithGstLine.style.display = "flex";
-          resultGstTotal.textContent = currency.format(gstTotal);
-          resultTotalWithGst.textContent = currency.format(totalWithGst);
+          resultGstTotal.textContent = currency.format(comm.gstTotal);
+          resultTotalWithGst.textContent = currency.format(comm.totalWithGst);
         }
 
         resultsBox.style.display = "block";
@@ -1059,8 +1028,7 @@
 
         lastPriceDigits = String(Math.round(sale));
 
-        const deductions = mort + comm + other;
-        const net = sale - deductions;
+        const { deductions, net } = calcSellerNet(sale, mort, comm, other);
 
         resultSale.textContent = currency.format(sale);
         resultDeductions.textContent = currency.format(deductions);
@@ -1106,13 +1074,8 @@
 
         lastPriceDigits = String(Math.round(loan));
 
-        const paymentsPerYear = freq === "biweekly" ? 26 : 12;
-        const n = years * paymentsPerYear;
-        const r = rate / 100 / paymentsPerYear;
-
-        const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-        const totalPaid = payment * n;
-        const totalInterest = totalPaid - loan;
+        const { payment, paymentsPerYear, totalInterest } =
+          calcMortgagePayment(loan, rate, years, freq);
 
         resultLoan.textContent = currency.format(loan);
         resultPayment.textContent = currency.format(payment);
@@ -1156,9 +1119,9 @@
 
         lastPriceDigits = String(Math.round(sale));
 
-        const totalCost = purchase + reno + holding + other;
-        const profit = sale - totalCost;
-        const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+        const { totalCost, profit, roi } = calcFlip(
+          purchase, reno, holding, other, sale
+        );
 
         resultCost.textContent = currency.format(totalCost);
         resultProfit.textContent = currency.format(profit);
