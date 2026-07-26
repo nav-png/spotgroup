@@ -1,0 +1,10 @@
+{
+  "name": "spotgroup-calculators",
+  "version": "1.0.0",
+  "description": "BC Real Estate Calculator Hub - Spot Group",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  }
+}
