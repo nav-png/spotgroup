@@ -220,6 +220,16 @@
       color: var(--error);
     }
 
+    .page-error {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--error);
+      background: #fee2e2;
+      color: var(--error);
+      font-size: 0.85rem;
+    }
+
     .result-box {
       margin-top: 14px;
       padding: 12px 14px;
@@ -381,7 +391,7 @@
             </div>
           </div>
           <button type="submit">Calculate Rescission</button>
-          <div id="resc-error" class="error"></div>
+          <div id="resc-error" class="error" role="alert"></div>
         </form>
 
         <div id="resc-results" class="result-box" style="display:none;">
@@ -419,7 +429,7 @@
                    placeholder="e.g. 880000" autocomplete="off" />
           </div>
           <button type="submit">Calculate PTT</button>
-          <div id="ptt-error" class="error"></div>
+          <div id="ptt-error" class="error" role="alert"></div>
         </form>
         <div id="ptt-results" class="result-box" style="display:none;">
           <div class="result-line">
@@ -514,7 +524,7 @@
           </div>
 
           <button type="submit">Calculate Commission</button>
-          <div id="comm-error" class="error"></div>
+          <div id="comm-error" class="error" role="alert"></div>
         </form>
         <div id="comm-results" class="result-box" style="display:none;">
           <div class="result-line">
@@ -571,7 +581,7 @@
             <input type="text" id="net-other" class="currency-input" placeholder="e.g. 4500" autocomplete="off" />
           </div>
           <button type="submit">Calculate Net to Seller</button>
-          <div id="net-error" class="error"></div>
+          <div id="net-error" class="error" role="alert"></div>
         </form>
         <div id="net-results" class="result-box" style="display:none;">
           <div class="result-line">
@@ -624,7 +634,7 @@
             </select>
           </div>
           <button type="submit">Calculate Payment</button>
-          <div id="mort-error" class="error"></div>
+          <div id="mort-error" class="error" role="alert"></div>
         </form>
         <div id="mort-results" class="result-box" style="display:none;">
           <div class="result-line">
@@ -644,7 +654,7 @@
             <span id="mort-result-interest" class="result-value"></span>
           </div>
           <p class="note">
-            Uses standard mortgage math with fixed rate over full amortization. Real-world payments can vary by lender and product.
+            Uses Canadian mortgage math – the rate is compounded semi-annually, not in advance – over the full amortization. Real-world payments can vary by lender and product.
           </p>
         </div>
       </div>
@@ -681,7 +691,7 @@
                    placeholder="e.g. 1200000" autocomplete="off" />
           </div>
           <button type="submit">Calculate Profit</button>
-          <div id="flip-error" class="error"></div>
+          <div id="flip-error" class="error" role="alert"></div>
         </form>
         <div id="flip-results" class="result-box" style="display:none;">
           <div class="result-line">
@@ -716,11 +726,127 @@
       return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
+    // Looks up an element and fails loudly instead of returning null, which would
+    // otherwise surface much later as an opaque "cannot read property of null".
+    function requireElement(id) {
+      const el = document.getElementById(id);
+      if (!el) {
+        throw new Error("Missing required element #" + id);
+      }
+      return el;
+    }
+
+    // Returns NaN for anything that is not a single well-formed amount so callers
+    // can tell "user typed nonsense" apart from "user typed nothing".
     function parseCurrencyString(str) {
-      if (!str) return 0;
-      const cleaned = str.replace(/[^0-9.]/g, "");
-      if (!cleaned) return 0;
-      return parseFloat(cleaned);
+      if (str === null || str === undefined) return NaN;
+      const trimmed = String(str).trim();
+      if (!trimmed) return NaN;
+      const cleaned = trimmed.replace(/[\s,$]/g, "");
+      if (!/^-?(\d+(\.\d*)?|\.\d+)$/.test(cleaned)) return NaN;
+      const value = Number(cleaned);
+      return Number.isFinite(value) ? value : NaN;
+    }
+
+    // Optional money fields: blank means zero, but garbage is still an error.
+    function parseOptionalAmount(str) {
+      if (String(str ?? "").trim() === "") return 0;
+      return parseCurrencyString(str);
+    }
+
+    function parseRate(str) {
+      const trimmed = String(str ?? "").trim();
+      if (!trimmed) return NaN;
+      const value = Number(trimmed);
+      return Number.isFinite(value) ? value : NaN;
+    }
+
+    function formatCurrency(value) {
+      if (!Number.isFinite(value)) {
+        throw new Error("Cannot format non-finite amount: " + value);
+      }
+      return currency.format(value);
+    }
+
+    class ValidationError extends Error {
+      constructor(message) {
+        super(message);
+        this.name = "ValidationError";
+      }
+    }
+
+    // Runs a calculation, routing both validation messages and unexpected
+    // exceptions to the calculator's own error slot rather than letting the form
+    // fail silently with nothing but a console trace.
+    function runCalculation(errorDiv, fn) {
+      try {
+        fn();
+      } catch (err) {
+        console.error(err);
+        errorDiv.textContent =
+          err instanceof ValidationError
+            ? err.message
+            : "Something went wrong while calculating. Please check your inputs and try again.";
+      }
+    }
+
+    // Surfaces failures that happen outside a form submit (wiring errors,
+    // unhandled rejections) instead of leaving the page quietly broken.
+    function reportPageError(message) {
+      let banner = document.getElementById("page-error");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "page-error";
+        banner.className = "page-error";
+        banner.setAttribute("role", "alert");
+        document.querySelector(".app").prepend(banner);
+      }
+      banner.textContent = message;
+      banner.style.display = "block";
+    }
+
+    window.addEventListener("error", (event) => {
+      reportPageError("An unexpected error occurred: " + (event.message || "unknown error"));
+    });
+
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason = event.reason;
+      reportPageError(
+        "An unexpected error occurred: " + ((reason && reason.message) || String(reason))
+      );
+    });
+
+    // Keeps one section's wiring failure from aborting the whole script and
+    // silently disabling every calculator below it.
+    function setupSection(name, setup) {
+      try {
+        setup();
+      } catch (err) {
+        console.error("Failed to initialise " + name, err);
+        reportPageError("The " + name + " could not be loaded. Please reload the page.");
+      }
+    }
+
+    function requireAmount(rawValue, label) {
+      const value = parseCurrencyString(rawValue);
+      if (Number.isNaN(value)) {
+        throw new ValidationError("Please enter " + label + " as a number.");
+      }
+      if (value <= 0) {
+        throw new ValidationError("Please enter " + label + " above zero.");
+      }
+      return value;
+    }
+
+    function optionalAmount(rawValue, label) {
+      const value = parseOptionalAmount(rawValue);
+      if (Number.isNaN(value)) {
+        throw new ValidationError("Please enter " + label + " as a number, or leave it blank.");
+      }
+      if (value < 0) {
+        throw new ValidationError("Please enter " + label + " as zero or more.");
+      }
+      return value;
     }
 
     function addBusinessDays(startDate, days) {
@@ -748,6 +874,13 @@
     // Remember last main price typed so we can suggest it in other tabs
     let lastPriceDigits = "";
 
+    // setSelectionRange throws on input types that do not support selection, so
+    // the caret move must never take the input handler down with it.
+    function setCaretToEnd(input) {
+      if (input.type !== "text" && input.type !== "search") return;
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+
     function attachCurrencyFormatting(input) {
       input.addEventListener("input", () => {
         if (input.classList.contains("suggested")) return;
@@ -757,10 +890,8 @@
           input.value = "";
           return;
         }
-        const formatted = formatDigitsWithCommas(digits);
-        input.value = formatted;
-        const len = formatted.length;
-        input.setSelectionRange(len, len);
+        input.value = formatDigitsWithCommas(digits);
+        setCaretToEnd(input);
 
         if (input.dataset.suggestPrice === "true") {
           lastPriceDigits = digits;
@@ -784,8 +915,7 @@
         if (e.key === " ") {
           e.preventDefault();
           input.classList.remove("suggested");
-          const len = input.value.length;
-          input.setSelectionRange(len, len);
+          setCaretToEnd(input);
           return;
         }
 
@@ -793,12 +923,8 @@
         if (e.key >= "0" && e.key <= "9") {
           e.preventDefault();
           input.classList.remove("suggested");
-          input.value = e.key;
-          const digits = input.value.replace(/\D/g, "");
-          const formatted = formatDigitsWithCommas(digits);
-          input.value = formatted;
-          const len = formatted.length;
-          input.setSelectionRange(len, len);
+          input.value = formatDigitsWithCommas(e.key);
+          setCaretToEnd(input);
           return;
         }
 
@@ -814,146 +940,174 @@
     }
 
     // Attach currency behaviour to all money fields
-    document.querySelectorAll(".currency-input").forEach((input) => {
-      attachCurrencyFormatting(input);
-      if (input.dataset.suggestPrice === "true") {
-        attachSuggestionBehavior(input);
-      }
+    setupSection("currency inputs", function () {
+      document.querySelectorAll(".currency-input").forEach((input) => {
+        attachCurrencyFormatting(input);
+        if (input.dataset.suggestPrice === "true") {
+          attachSuggestionBehavior(input);
+        }
+      });
     });
 
     // ===== Accordion behaviour (each tab independent) =====
-    document.querySelectorAll(".accordion-header").forEach((header) => {
-      header.addEventListener("click", () => {
-        const item = header.parentElement;
-        item.classList.toggle("open");
+    setupSection("accordion sections", function () {
+      document.querySelectorAll(".accordion-header").forEach((header) => {
+        header.addEventListener("click", () => {
+          header.parentElement.classList.toggle("open");
+        });
       });
     });
 
     // ===== Rescission Calculator =====
-    (function () {
-      const form = document.getElementById("form-rescission");
-      const priceInput = document.getElementById("resc-price");
-      const dateInput = document.getElementById("resc-date");
-      const errorDiv = document.getElementById("resc-error");
+    setupSection("Rescission calculator", function () {
+      const form = requireElement("form-rescission");
+      const priceInput = requireElement("resc-price");
+      const dateInput = requireElement("resc-date");
+      const errorDiv = requireElement("resc-error");
 
-      const resultsBox = document.getElementById("resc-results");
-      const resultPrice = document.getElementById("resc-result-price");
-      const resultFee = document.getElementById("resc-result-fee");
-      const resultDeadline = document.getElementById("resc-result-deadline");
-      const deadlineLine = document.getElementById("resc-deadline-line");
+      const resultsBox = requireElement("resc-results");
+      const resultPrice = requireElement("resc-result-price");
+      const resultFee = requireElement("resc-result-fee");
+      const resultDeadline = requireElement("resc-result-deadline");
+      const deadlineLine = requireElement("resc-deadline-line");
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         errorDiv.textContent = "";
         resultsBox.style.display = "none";
+        deadlineLine.style.display = "none";
 
-        const price = parseCurrencyString(priceInput.value);
-        const dateStr = dateInput.value;
+        runCalculation(errorDiv, () => {
+          const price = requireAmount(priceInput.value, "a purchase price");
+          const dateStr = dateInput.value.trim();
 
-        if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid purchase price above zero.";
-          return;
-        }
+          lastPriceDigits = String(Math.round(price));
 
-        lastPriceDigits = String(Math.round(price));
+          const fee = price * 0.0025;
+          resultPrice.textContent = formatCurrency(price);
+          resultFee.textContent = formatCurrency(fee);
 
-        const fee = price * 0.0025;
-        resultPrice.textContent = currency.format(price);
-        resultFee.textContent = currency.format(fee);
-
-        if (dateStr) {
-          const acceptedDate = new Date(dateStr + "T12:00:00");
-          if (!isNaN(acceptedDate.getTime())) {
+          if (dateStr) {
+            const acceptedDate = new Date(dateStr + "T12:00:00");
+            if (Number.isNaN(acceptedDate.getTime())) {
+              throw new ValidationError(
+                "The offer accepted date is not a valid date. Please re-enter it or clear it."
+              );
+            }
             const deadline = addBusinessDays(acceptedDate, 3);
             deadlineLine.style.display = "flex";
             resultDeadline.textContent = formatDate(deadline) + " (end of day)";
-          } else {
-            deadlineLine.style.display = "none";
           }
-        } else {
-          deadlineLine.style.display = "none";
-        }
 
-        resultsBox.style.display = "block";
+          resultsBox.style.display = "block";
+        });
       });
-    })();
+    });
 
     // ===== PTT Calculator =====
-    (function () {
-      const form = document.getElementById("form-ptt");
-      const priceInput = document.getElementById("ptt-price");
-      const errorDiv = document.getElementById("ptt-error");
+    setupSection("Property Transfer Tax calculator", function () {
+      const form = requireElement("form-ptt");
+      const priceInput = requireElement("ptt-price");
+      const errorDiv = requireElement("ptt-error");
 
-      const resultsBox = document.getElementById("ptt-results");
-      const resultPrice = document.getElementById("ptt-result-price");
-      const resultFirst = document.getElementById("ptt-result-first");
-      const resultBalance = document.getElementById("ptt-result-balance");
-      const resultTotal = document.getElementById("ptt-result-total");
+      const resultsBox = requireElement("ptt-results");
+      const resultPrice = requireElement("ptt-result-price");
+      const resultFirst = requireElement("ptt-result-first");
+      const resultBalance = requireElement("ptt-result-balance");
+      const resultTotal = requireElement("ptt-result-total");
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         errorDiv.textContent = "";
         resultsBox.style.display = "none";
 
-        const price = parseCurrencyString(priceInput.value);
-        if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid purchase price above zero.";
-          return;
-        }
+        runCalculation(errorDiv, () => {
+          const price = requireAmount(priceInput.value, "a purchase price");
 
-        lastPriceDigits = String(Math.round(price));
+          lastPriceDigits = String(Math.round(price));
 
-        const firstPortion = Math.min(price, 200000);
-        const balancePortion = Math.max(price - 200000, 0);
+          const firstPortion = Math.min(price, 200000);
+          const balancePortion = Math.max(price - 200000, 0);
 
-        const pttFirst = firstPortion * 0.01;
-        const pttBalance = balancePortion * 0.02;
-        const total = pttFirst + pttBalance;
+          const pttFirst = firstPortion * 0.01;
+          const pttBalance = balancePortion * 0.02;
+          const total = pttFirst + pttBalance;
 
-        resultPrice.textContent = currency.format(price);
-        resultFirst.textContent = currency.format(pttFirst);
-        resultBalance.textContent = currency.format(pttBalance);
-        resultTotal.textContent = currency.format(total);
+          resultPrice.textContent = formatCurrency(price);
+          resultFirst.textContent = formatCurrency(pttFirst);
+          resultBalance.textContent = formatCurrency(pttBalance);
+          resultTotal.textContent = formatCurrency(total);
 
-        resultsBox.style.display = "block";
+          resultsBox.style.display = "block";
+        });
       });
-    })();
+    });
 
     // ===== Commission Calculator =====
-    (function () {
-      const form = document.getElementById("form-commission");
-      const priceInput = document.getElementById("comm-price");
-      const totalFirstInput = document.getElementById("comm-total-first-rate");
-      const buyerFirstInput = document.getElementById("comm-buyer-first-rate");
-      const listingFirstInput = document.getElementById("comm-listing-first-rate");
-      const totalRestInput = document.getElementById("comm-total-rest-rate");
-      const buyerRestInput = document.getElementById("comm-buyer-rest-rate");
-      const listingRestInput = document.getElementById("comm-listing-rest-rate");
-      const gstCheckbox = document.getElementById("comm-apply-gst");
-      const errorDiv = document.getElementById("comm-error");
+    setupSection("Commission calculator", function () {
+      const form = requireElement("form-commission");
+      const priceInput = requireElement("comm-price");
+      const totalFirstInput = requireElement("comm-total-first-rate");
+      const buyerFirstInput = requireElement("comm-buyer-first-rate");
+      const listingFirstInput = requireElement("comm-listing-first-rate");
+      const totalRestInput = requireElement("comm-total-rest-rate");
+      const buyerRestInput = requireElement("comm-buyer-rest-rate");
+      const listingRestInput = requireElement("comm-listing-rest-rate");
+      const gstCheckbox = requireElement("comm-apply-gst");
+      const errorDiv = requireElement("comm-error");
 
-      const resultsBox = document.getElementById("comm-results");
-      const resultTotal = document.getElementById("comm-result-total");
-      const resultBuyer = document.getElementById("comm-result-buyer");
-      const resultListing = document.getElementById("comm-result-listing");
-      const gstTotalLine = document.getElementById("comm-gst-total-line");
-      const totalWithGstLine = document.getElementById("comm-total-with-gst-line");
-      const resultGstTotal = document.getElementById("comm-result-gst-total");
-      const resultTotalWithGst = document.getElementById("comm-result-total-with-gst");
+      const resultsBox = requireElement("comm-results");
+      const resultTotal = requireElement("comm-result-total");
+      const resultBuyer = requireElement("comm-result-buyer");
+      const resultListing = requireElement("comm-result-listing");
+      const gstTotalLine = requireElement("comm-gst-total-line");
+      const totalWithGstLine = requireElement("comm-total-with-gst-line");
+      const resultGstTotal = requireElement("comm-result-gst-total");
+      const resultTotalWithGst = requireElement("comm-result-total-with-gst");
 
       const FIRST_TIER_CAP = 100000;
 
+      function requireRate(rawValue, label) {
+        const rate = parseRate(rawValue);
+        if (Number.isNaN(rate)) {
+          throw new ValidationError("Please enter " + label + " as a number.");
+        }
+        if (rate < 0 || rate > 100) {
+          throw new ValidationError("Please enter " + label + " between 0 and 100.");
+        }
+        return rate;
+      }
+
+      function readRates() {
+        const totalFirst = requireRate(totalFirstInput.value, "the total rate on the first tier");
+        const buyerFirst = requireRate(buyerFirstInput.value, "the buyer rate on the first tier");
+        const totalRest = requireRate(totalRestInput.value, "the total rate on the balance");
+        const buyerRest = requireRate(buyerRestInput.value, "the buyer rate on the balance");
+
+        if (buyerFirst > totalFirst || buyerRest > totalRest) {
+          throw new ValidationError(
+            "The buyer rate cannot be higher than the total rate for the same tier."
+          );
+        }
+
+        return { totalFirst, buyerFirst, totalRest, buyerRest };
+      }
+
+      // Derived listing rates are blanked out when the inputs they depend on are
+      // invalid, instead of silently showing a rate derived from a 0 fallback.
       function updateListingRates() {
-        const totalFirst = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirst = parseFloat(buyerFirstInput.value) || 0;
-        const totalRest = parseFloat(totalRestInput.value) || 0;
-        const buyerRest = parseFloat(buyerRestInput.value) || 0;
+        let rates;
+        try {
+          rates = readRates();
+        } catch (err) {
+          if (!(err instanceof ValidationError)) throw err;
+          listingFirstInput.value = "";
+          listingRestInput.value = "";
+          return;
+        }
 
-        let listingFirst = totalFirst - buyerFirst;
-        let listingRest = totalRest - buyerRest;
-
-        if (listingFirst < 0) listingFirst = 0;
-        if (listingRest < 0) listingRest = 0;
+        const listingFirst = rates.totalFirst - rates.buyerFirst;
+        const listingRest = rates.totalRest - rates.buyerRest;
 
         listingFirstInput.value = listingFirst.toFixed(2).replace(/\.00$/, "");
         listingRestInput.value = listingRest.toFixed(2).replace(/\.00$/, "");
@@ -972,48 +1126,41 @@
         gstTotalLine.style.display = "none";
         totalWithGstLine.style.display = "none";
 
-        const price = parseCurrencyString(priceInput.value);
-        if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid sale price.";
-          return false;
-        }
+        runCalculation(errorDiv, () => {
+          const price = requireAmount(priceInput.value, "a sale price");
+          const rates = readRates();
 
-        lastPriceDigits = String(Math.round(price));
+          lastPriceDigits = String(Math.round(price));
 
-        const totalFirstRate = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirstRate = parseFloat(buyerFirstInput.value) || 0;
-        const totalRestRate = parseFloat(totalRestInput.value) || 0;
-        const buyerRestRate = parseFloat(buyerRestInput.value) || 0;
+          const firstPortion = Math.min(price, FIRST_TIER_CAP);
+          const restPortion = Math.max(price - FIRST_TIER_CAP, 0);
 
-        const firstPortion = Math.min(price, FIRST_TIER_CAP);
-        const restPortion = Math.max(price - FIRST_TIER_CAP, 0);
+          const totalComm =
+            firstPortion * (rates.totalFirst / 100) +
+            restPortion * (rates.totalRest / 100);
 
-        const totalComm =
-          firstPortion * (totalFirstRate / 100) +
-          restPortion * (totalRestRate / 100);
+          const buyerComm =
+            firstPortion * (rates.buyerFirst / 100) +
+            restPortion * (rates.buyerRest / 100);
 
-        const buyerComm =
-          firstPortion * (buyerFirstRate / 100) +
-          restPortion * (buyerRestRate / 100);
+          const listingComm = totalComm - buyerComm;
 
-        const listingComm = totalComm - buyerComm;
+          resultTotal.textContent = formatCurrency(totalComm);
+          resultBuyer.textContent = formatCurrency(buyerComm);
+          resultListing.textContent = formatCurrency(listingComm);
 
-        resultTotal.textContent = currency.format(totalComm);
-        resultBuyer.textContent = currency.format(buyerComm);
-        resultListing.textContent = currency.format(listingComm);
+          if (gstCheckbox.checked) {
+            const gstTotal = totalComm * 0.05;
+            const totalWithGst = totalComm + gstTotal;
 
-        if (gstCheckbox.checked) {
-          const gstTotal = totalComm * 0.05;
-          const totalWithGst = totalComm + gstTotal;
+            gstTotalLine.style.display = "flex";
+            totalWithGstLine.style.display = "flex";
+            resultGstTotal.textContent = formatCurrency(gstTotal);
+            resultTotalWithGst.textContent = formatCurrency(totalWithGst);
+          }
 
-          gstTotalLine.style.display = "flex";
-          totalWithGstLine.style.display = "flex";
-          resultGstTotal.textContent = currency.format(gstTotal);
-          resultTotalWithGst.textContent = currency.format(totalWithGst);
-        }
-
-        resultsBox.style.display = "block";
-        return true;
+          resultsBox.style.display = "block";
+        });
       }
 
       form.addEventListener("submit", function (e) {
@@ -1026,147 +1173,158 @@
           computeAndRenderCommission();
         }
       });
-    })();
+    });
 
     // ===== Seller Net Sheet =====
-    (function () {
-      const form = document.getElementById("form-net");
-      const saleInput = document.getElementById("net-sale-price");
-      const mortInput = document.getElementById("net-mortgage");
-      const commInput = document.getElementById("net-commission");
-      const otherInput = document.getElementById("net-other");
-      const errorDiv = document.getElementById("net-error");
+    setupSection("Seller Net Sheet", function () {
+      const form = requireElement("form-net");
+      const saleInput = requireElement("net-sale-price");
+      const mortInput = requireElement("net-mortgage");
+      const commInput = requireElement("net-commission");
+      const otherInput = requireElement("net-other");
+      const errorDiv = requireElement("net-error");
 
-      const resultsBox = document.getElementById("net-results");
-      const resultSale = document.getElementById("net-result-sale");
-      const resultDeductions = document.getElementById("net-result-deductions");
-      const resultNet = document.getElementById("net-result-net");
+      const resultsBox = requireElement("net-results");
+      const resultSale = requireElement("net-result-sale");
+      const resultDeductions = requireElement("net-result-deductions");
+      const resultNet = requireElement("net-result-net");
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         errorDiv.textContent = "";
         resultsBox.style.display = "none";
 
-        const sale = parseCurrencyString(saleInput.value);
-        const mort = parseCurrencyString(mortInput.value);
-        const comm = parseCurrencyString(commInput.value);
-        const other = parseCurrencyString(otherInput.value);
+        runCalculation(errorDiv, () => {
+          const sale = requireAmount(saleInput.value, "a sale price");
+          const mort = optionalAmount(mortInput.value, "the mortgage payoff");
+          const comm = optionalAmount(commInput.value, "the total commission");
+          const other = optionalAmount(otherInput.value, "the other costs");
 
-        if (!sale || sale <= 0) {
-          errorDiv.textContent = "Please enter a valid sale price.";
-          return;
-        }
+          lastPriceDigits = String(Math.round(sale));
 
-        lastPriceDigits = String(Math.round(sale));
+          const deductions = mort + comm + other;
+          const net = sale - deductions;
 
-        const deductions = mort + comm + other;
-        const net = sale - deductions;
+          resultSale.textContent = formatCurrency(sale);
+          resultDeductions.textContent = formatCurrency(deductions);
+          resultNet.textContent = formatCurrency(net);
 
-        resultSale.textContent = currency.format(sale);
-        resultDeductions.textContent = currency.format(deductions);
-        resultNet.textContent = currency.format(net);
-
-        resultsBox.style.display = "block";
+          resultsBox.style.display = "block";
+        });
       });
-    })();
+    });
 
     // ===== Mortgage Payment =====
-    (function () {
-      const form = document.getElementById("form-mortgage");
-      const loanInput = document.getElementById("mort-loan");
-      const rateInput = document.getElementById("mort-rate");
-      const yearsInput = document.getElementById("mort-years");
-      const freqSelect = document.getElementById("mort-frequency");
-      const errorDiv = document.getElementById("mort-error");
+    setupSection("Mortgage Payment calculator", function () {
+      const form = requireElement("form-mortgage");
+      const loanInput = requireElement("mort-loan");
+      const rateInput = requireElement("mort-rate");
+      const yearsInput = requireElement("mort-years");
+      const freqSelect = requireElement("mort-frequency");
+      const errorDiv = requireElement("mort-error");
 
-      const resultsBox = document.getElementById("mort-results");
-      const resultLoan = document.getElementById("mort-result-loan");
-      const resultPayment = document.getElementById("mort-result-payment");
-      const resultPerYear = document.getElementById("mort-result-peryear");
-      const resultInterest = document.getElementById("mort-result-interest");
+      const resultsBox = requireElement("mort-results");
+      const resultLoan = requireElement("mort-result-loan");
+      const resultPayment = requireElement("mort-result-payment");
+      const resultPerYear = requireElement("mort-result-peryear");
+      const resultInterest = requireElement("mort-result-interest");
+
+      const PAYMENTS_PER_YEAR = { monthly: 12, biweekly: 26 };
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         errorDiv.textContent = "";
         resultsBox.style.display = "none";
 
-        const loan = parseCurrencyString(loanInput.value);
-        const rate = parseFloat(rateInput.value);
-        const years = parseInt(yearsInput.value, 10);
-        const freq = freqSelect.value;
+        runCalculation(errorDiv, () => {
+          const loan = requireAmount(loanInput.value, "a loan amount");
 
-        if (!loan || loan <= 0) {
-          errorDiv.textContent = "Please enter a valid loan amount.";
-          return;
-        }
-        if (!rate || rate <= 0 || !years || years <= 0) {
-          errorDiv.textContent = "Please enter a valid rate and amortization.";
-          return;
-        }
+          const rate = parseRate(rateInput.value);
+          if (Number.isNaN(rate) || rate <= 0 || rate > 100) {
+            throw new ValidationError("Please enter an interest rate between 0 and 100.");
+          }
 
-        lastPriceDigits = String(Math.round(loan));
+          const years = parseRate(yearsInput.value);
+          if (Number.isNaN(years) || !Number.isInteger(years) || years <= 0 || years > 100) {
+            throw new ValidationError(
+              "Please enter the amortization as a whole number of years between 1 and 100."
+            );
+          }
 
-        const paymentsPerYear = freq === "biweekly" ? 26 : 12;
-        const n = years * paymentsPerYear;
-        const r = rate / 100 / paymentsPerYear;
+          const paymentsPerYear = PAYMENTS_PER_YEAR[freqSelect.value];
+          if (!paymentsPerYear) {
+            throw new ValidationError("Please choose a supported payment frequency.");
+          }
 
-        const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-        const totalPaid = payment * n;
-        const totalInterest = totalPaid - loan;
+          lastPriceDigits = String(Math.round(loan));
 
-        resultLoan.textContent = currency.format(loan);
-        resultPayment.textContent = currency.format(payment);
-        resultPerYear.textContent = paymentsPerYear.toString();
-        resultInterest.textContent = currency.format(totalInterest);
+          const n = years * paymentsPerYear;
+          // Canadian mortgages quote a nominal rate compounded semi-annually
+          // (Interest Act s. 6), so the quoted rate is converted to the
+          // equivalent periodic rate rather than divided by the payment count.
+          const semiAnnualRate = rate / 100 / 2;
+          const r = Math.pow(1 + semiAnnualRate, 2 / paymentsPerYear) - 1;
 
-        resultsBox.style.display = "block";
+          const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+          if (!Number.isFinite(payment)) {
+            throw new ValidationError(
+              "That combination of loan, rate and amortization produces no usable payment. Please adjust the inputs."
+            );
+          }
+
+          const totalInterest = payment * n - loan;
+
+          resultLoan.textContent = formatCurrency(loan);
+          resultPayment.textContent = formatCurrency(payment);
+          resultPerYear.textContent = String(paymentsPerYear);
+          resultInterest.textContent = formatCurrency(totalInterest);
+
+          resultsBox.style.display = "block";
+        });
       });
-    })();
+    });
 
     // ===== Flip / Investment Profit =====
-    (function () {
-      const form = document.getElementById("form-flip");
-      const purchaseInput = document.getElementById("flip-purchase");
-      const renoInput = document.getElementById("flip-reno");
-      const holdingInput = document.getElementById("flip-holding");
-      const otherInput = document.getElementById("flip-other");
-      const saleInput = document.getElementById("flip-sale");
-      const errorDiv = document.getElementById("flip-error");
+    setupSection("Flip / Investment Profit calculator", function () {
+      const form = requireElement("form-flip");
+      const purchaseInput = requireElement("flip-purchase");
+      const renoInput = requireElement("flip-reno");
+      const holdingInput = requireElement("flip-holding");
+      const otherInput = requireElement("flip-other");
+      const saleInput = requireElement("flip-sale");
+      const errorDiv = requireElement("flip-error");
 
-      const resultsBox = document.getElementById("flip-results");
-      const resultCost = document.getElementById("flip-result-cost");
-      const resultProfit = document.getElementById("flip-result-profit");
-      const resultRoi = document.getElementById("flip-result-roi");
+      const resultsBox = requireElement("flip-results");
+      const resultCost = requireElement("flip-result-cost");
+      const resultProfit = requireElement("flip-result-profit");
+      const resultRoi = requireElement("flip-result-roi");
 
       form.addEventListener("submit", function (e) {
         e.preventDefault();
         errorDiv.textContent = "";
         resultsBox.style.display = "none";
 
-        const purchase = parseCurrencyString(purchaseInput.value);
-        const reno = parseCurrencyString(renoInput.value);
-        const holding = parseCurrencyString(holdingInput.value);
-        const other = parseCurrencyString(otherInput.value);
-        const sale = parseCurrencyString(saleInput.value);
+        runCalculation(errorDiv, () => {
+          const purchase = requireAmount(purchaseInput.value, "a purchase price");
+          const sale = requireAmount(saleInput.value, "a resale price");
+          const reno = optionalAmount(renoInput.value, "the renovation costs");
+          const holding = optionalAmount(holdingInput.value, "the holding costs");
+          const other = optionalAmount(otherInput.value, "the other costs");
 
-        if (!purchase || purchase <= 0 || !sale || sale <= 0) {
-          errorDiv.textContent = "Please enter both purchase and resale prices.";
-          return;
-        }
+          lastPriceDigits = String(Math.round(sale));
 
-        lastPriceDigits = String(Math.round(sale));
+          const totalCost = purchase + reno + holding + other;
+          const profit = sale - totalCost;
 
-        const totalCost = purchase + reno + holding + other;
-        const profit = sale - totalCost;
-        const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+          resultCost.textContent = formatCurrency(totalCost);
+          resultProfit.textContent = formatCurrency(profit);
+          resultRoi.textContent =
+            totalCost > 0 ? ((profit / totalCost) * 100).toFixed(1) + " %" : "n/a";
 
-        resultCost.textContent = currency.format(totalCost);
-        resultProfit.textContent = currency.format(profit);
-        resultRoi.textContent = roi.toFixed(1) + " %";
-
-        resultsBox.style.display = "block";
+          resultsBox.style.display = "block";
+        });
       });
-    })();
+    });
   </script>
 </body>
 </html>
