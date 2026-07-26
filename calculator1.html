@@ -705,12 +705,21 @@
   </div>
 
   <script>
-    // ===== Helpers =====
+    // ===== Shared utilities =====
     const currency = new Intl.NumberFormat("en-CA", {
       style: "currency",
       currency: "CAD",
       maximumFractionDigits: 2
     });
+
+    const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+
+    const $ = (id) => document.getElementById(id);
 
     function formatDigitsWithCommas(digits) {
       return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -721,6 +730,22 @@
       const cleaned = str.replace(/[^0-9.]/g, "");
       if (!cleaned) return 0;
       return parseFloat(cleaned);
+    }
+
+    function readCurrency(id) {
+      return parseCurrencyString($(id).value);
+    }
+
+    function readNumber(id) {
+      return parseFloat($(id).value) || 0;
+    }
+
+    // Splits an amount into the portion below a tier cap and the remainder.
+    function splitAtCap(amount, cap) {
+      return {
+        first: Math.min(amount, cap),
+        rest: Math.max(amount - cap, 0)
+      };
     }
 
     function addBusinessDays(startDate, days) {
@@ -737,17 +762,64 @@
     }
 
     function formatDate(date) {
-      return new Intl.DateTimeFormat("en-CA", {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      }).format(date);
+      return dateFormatter.format(date);
     }
 
     // Remember last main price typed so we can suggest it in other tabs
     let lastPriceDigits = "";
 
+    function rememberPrice(amount) {
+      lastPriceDigits = String(Math.round(amount));
+    }
+
+    function setDisplay(el, visible, mode) {
+      el.style.display = visible ? (mode || "flex") : "none";
+    }
+
+    /**
+     * Wires a form to a compute function, handling the boilerplate shared by
+     * every calculator: reset, validation errors, rendering and visibility.
+     *
+     * compute() returns either { error } or { results, lines }, where results
+     * maps element ids to values (numbers are formatted as currency) and lines
+     * maps ids of optional result lines to their visibility.
+     */
+    function createCalculator({ formId, errorId, resultsId, optionalLines = [], compute }) {
+      const form = $(formId);
+      const errorDiv = $(errorId);
+      const resultsBox = $(resultsId);
+
+      function run() {
+        errorDiv.textContent = "";
+        setDisplay(resultsBox, false);
+        optionalLines.forEach((id) => setDisplay($(id), false));
+
+        const outcome = compute();
+        if (outcome.error) {
+          errorDiv.textContent = outcome.error;
+          return false;
+        }
+
+        Object.entries(outcome.results).forEach(([id, value]) => {
+          $(id).textContent = typeof value === "number" ? currency.format(value) : value;
+        });
+        Object.entries(outcome.lines || {}).forEach(([id, visible]) => {
+          setDisplay($(id), visible);
+        });
+
+        setDisplay(resultsBox, true, "block");
+        return true;
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        run();
+      });
+
+      return { run };
+    }
+
+    // ===== Currency input behaviour =====
     function attachCurrencyFormatting(input) {
       input.addEventListener("input", () => {
         if (input.classList.contains("suggested")) return;
@@ -793,9 +865,7 @@
         if (e.key >= "0" && e.key <= "9") {
           e.preventDefault();
           input.classList.remove("suggested");
-          input.value = e.key;
-          const digits = input.value.replace(/\D/g, "");
-          const formatted = formatDigitsWithCommas(digits);
+          const formatted = formatDigitsWithCommas(e.key);
           input.value = formatted;
           const len = formatted.length;
           input.setSelectionRange(len, len);
@@ -824,349 +894,231 @@
     // ===== Accordion behaviour (each tab independent) =====
     document.querySelectorAll(".accordion-header").forEach((header) => {
       header.addEventListener("click", () => {
-        const item = header.parentElement;
-        item.classList.toggle("open");
+        header.parentElement.classList.toggle("open");
       });
     });
 
     // ===== Rescission Calculator =====
-    (function () {
-      const form = document.getElementById("form-rescission");
-      const priceInput = document.getElementById("resc-price");
-      const dateInput = document.getElementById("resc-date");
-      const errorDiv = document.getElementById("resc-error");
-
-      const resultsBox = document.getElementById("resc-results");
-      const resultPrice = document.getElementById("resc-result-price");
-      const resultFee = document.getElementById("resc-result-fee");
-      const resultDeadline = document.getElementById("resc-result-deadline");
-      const deadlineLine = document.getElementById("resc-deadline-line");
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-
-        const price = parseCurrencyString(priceInput.value);
-        const dateStr = dateInput.value;
-
+    createCalculator({
+      formId: "form-rescission",
+      errorId: "resc-error",
+      resultsId: "resc-results",
+      optionalLines: ["resc-deadline-line"],
+      compute() {
+        const price = readCurrency("resc-price");
         if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid purchase price above zero.";
-          return;
+          return { error: "Please enter a valid purchase price above zero." };
+        }
+        rememberPrice(price);
+
+        const results = {
+          "resc-result-price": price,
+          "resc-result-fee": price * 0.0025
+        };
+
+        const dateStr = $("resc-date").value;
+        const acceptedDate = dateStr ? new Date(dateStr + "T12:00:00") : null;
+        const hasDeadline = Boolean(acceptedDate) && !isNaN(acceptedDate.getTime());
+        if (hasDeadline) {
+          results["resc-result-deadline"] =
+            formatDate(addBusinessDays(acceptedDate, 3)) + " (end of day)";
         }
 
-        lastPriceDigits = String(Math.round(price));
-
-        const fee = price * 0.0025;
-        resultPrice.textContent = currency.format(price);
-        resultFee.textContent = currency.format(fee);
-
-        if (dateStr) {
-          const acceptedDate = new Date(dateStr + "T12:00:00");
-          if (!isNaN(acceptedDate.getTime())) {
-            const deadline = addBusinessDays(acceptedDate, 3);
-            deadlineLine.style.display = "flex";
-            resultDeadline.textContent = formatDate(deadline) + " (end of day)";
-          } else {
-            deadlineLine.style.display = "none";
-          }
-        } else {
-          deadlineLine.style.display = "none";
-        }
-
-        resultsBox.style.display = "block";
-      });
-    })();
+        return { results, lines: { "resc-deadline-line": hasDeadline } };
+      }
+    });
 
     // ===== PTT Calculator =====
-    (function () {
-      const form = document.getElementById("form-ptt");
-      const priceInput = document.getElementById("ptt-price");
-      const errorDiv = document.getElementById("ptt-error");
-
-      const resultsBox = document.getElementById("ptt-results");
-      const resultPrice = document.getElementById("ptt-result-price");
-      const resultFirst = document.getElementById("ptt-result-first");
-      const resultBalance = document.getElementById("ptt-result-balance");
-      const resultTotal = document.getElementById("ptt-result-total");
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-
-        const price = parseCurrencyString(priceInput.value);
+    createCalculator({
+      formId: "form-ptt",
+      errorId: "ptt-error",
+      resultsId: "ptt-results",
+      compute() {
+        const price = readCurrency("ptt-price");
         if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid purchase price above zero.";
-          return;
+          return { error: "Please enter a valid purchase price above zero." };
         }
+        rememberPrice(price);
 
-        lastPriceDigits = String(Math.round(price));
+        const { first, rest } = splitAtCap(price, 200000);
+        const pttFirst = first * 0.01;
+        const pttBalance = rest * 0.02;
 
-        const firstPortion = Math.min(price, 200000);
-        const balancePortion = Math.max(price - 200000, 0);
-
-        const pttFirst = firstPortion * 0.01;
-        const pttBalance = balancePortion * 0.02;
-        const total = pttFirst + pttBalance;
-
-        resultPrice.textContent = currency.format(price);
-        resultFirst.textContent = currency.format(pttFirst);
-        resultBalance.textContent = currency.format(pttBalance);
-        resultTotal.textContent = currency.format(total);
-
-        resultsBox.style.display = "block";
-      });
-    })();
+        return {
+          results: {
+            "ptt-result-price": price,
+            "ptt-result-first": pttFirst,
+            "ptt-result-balance": pttBalance,
+            "ptt-result-total": pttFirst + pttBalance
+          }
+        };
+      }
+    });
 
     // ===== Commission Calculator =====
     (function () {
-      const form = document.getElementById("form-commission");
-      const priceInput = document.getElementById("comm-price");
-      const totalFirstInput = document.getElementById("comm-total-first-rate");
-      const buyerFirstInput = document.getElementById("comm-buyer-first-rate");
-      const listingFirstInput = document.getElementById("comm-listing-first-rate");
-      const totalRestInput = document.getElementById("comm-total-rest-rate");
-      const buyerRestInput = document.getElementById("comm-buyer-rest-rate");
-      const listingRestInput = document.getElementById("comm-listing-rest-rate");
-      const gstCheckbox = document.getElementById("comm-apply-gst");
-      const errorDiv = document.getElementById("comm-error");
-
-      const resultsBox = document.getElementById("comm-results");
-      const resultTotal = document.getElementById("comm-result-total");
-      const resultBuyer = document.getElementById("comm-result-buyer");
-      const resultListing = document.getElementById("comm-result-listing");
-      const gstTotalLine = document.getElementById("comm-gst-total-line");
-      const totalWithGstLine = document.getElementById("comm-total-with-gst-line");
-      const resultGstTotal = document.getElementById("comm-result-gst-total");
-      const resultTotalWithGst = document.getElementById("comm-result-total-with-gst");
-
       const FIRST_TIER_CAP = 100000;
+      const rateInputIds = [
+        "comm-total-first-rate",
+        "comm-buyer-first-rate",
+        "comm-total-rest-rate",
+        "comm-buyer-rest-rate"
+      ];
+
+      function formatRate(rate) {
+        return Math.max(rate, 0).toFixed(2).replace(/\.00$/, "");
+      }
 
       function updateListingRates() {
-        const totalFirst = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirst = parseFloat(buyerFirstInput.value) || 0;
-        const totalRest = parseFloat(totalRestInput.value) || 0;
-        const buyerRest = parseFloat(buyerRestInput.value) || 0;
-
-        let listingFirst = totalFirst - buyerFirst;
-        let listingRest = totalRest - buyerRest;
-
-        if (listingFirst < 0) listingFirst = 0;
-        if (listingRest < 0) listingRest = 0;
-
-        listingFirstInput.value = listingFirst.toFixed(2).replace(/\.00$/, "");
-        listingRestInput.value = listingRest.toFixed(2).replace(/\.00$/, "");
+        $("comm-listing-first-rate").value =
+          formatRate(readNumber("comm-total-first-rate") - readNumber("comm-buyer-first-rate"));
+        $("comm-listing-rest-rate").value =
+          formatRate(readNumber("comm-total-rest-rate") - readNumber("comm-buyer-rest-rate"));
       }
 
-      totalFirstInput.addEventListener("input", updateListingRates);
-      buyerFirstInput.addEventListener("input", updateListingRates);
-      totalRestInput.addEventListener("input", updateListingRates);
-      buyerRestInput.addEventListener("input", updateListingRates);
-
+      rateInputIds.forEach((id) => $(id).addEventListener("input", updateListingRates));
       updateListingRates();
 
-      function computeAndRenderCommission() {
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-        gstTotalLine.style.display = "none";
-        totalWithGstLine.style.display = "none";
+      const gstCheckbox = $("comm-apply-gst");
+      const priceInput = $("comm-price");
 
-        const price = parseCurrencyString(priceInput.value);
-        if (!price || price <= 0) {
-          errorDiv.textContent = "Please enter a valid sale price.";
-          return false;
+      const calculator = createCalculator({
+        formId: "form-commission",
+        errorId: "comm-error",
+        resultsId: "comm-results",
+        optionalLines: ["comm-gst-total-line", "comm-total-with-gst-line"],
+        compute() {
+          const price = parseCurrencyString(priceInput.value);
+          if (!price || price <= 0) {
+            return { error: "Please enter a valid sale price." };
+          }
+          rememberPrice(price);
+
+          const { first, rest } = splitAtCap(price, FIRST_TIER_CAP);
+          const commissionFor = (firstRateId, restRateId) =>
+            first * (readNumber(firstRateId) / 100) + rest * (readNumber(restRateId) / 100);
+
+          const totalComm = commissionFor("comm-total-first-rate", "comm-total-rest-rate");
+          const buyerComm = commissionFor("comm-buyer-first-rate", "comm-buyer-rest-rate");
+
+          const results = {
+            "comm-result-total": totalComm,
+            "comm-result-buyer": buyerComm,
+            "comm-result-listing": totalComm - buyerComm
+          };
+
+          const applyGst = gstCheckbox.checked;
+          if (applyGst) {
+            const gstTotal = totalComm * 0.05;
+            results["comm-result-gst-total"] = gstTotal;
+            results["comm-result-total-with-gst"] = totalComm + gstTotal;
+          }
+
+          return {
+            results,
+            lines: {
+              "comm-gst-total-line": applyGst,
+              "comm-total-with-gst-line": applyGst
+            }
+          };
         }
-
-        lastPriceDigits = String(Math.round(price));
-
-        const totalFirstRate = parseFloat(totalFirstInput.value) || 0;
-        const buyerFirstRate = parseFloat(buyerFirstInput.value) || 0;
-        const totalRestRate = parseFloat(totalRestInput.value) || 0;
-        const buyerRestRate = parseFloat(buyerRestInput.value) || 0;
-
-        const firstPortion = Math.min(price, FIRST_TIER_CAP);
-        const restPortion = Math.max(price - FIRST_TIER_CAP, 0);
-
-        const totalComm =
-          firstPortion * (totalFirstRate / 100) +
-          restPortion * (totalRestRate / 100);
-
-        const buyerComm =
-          firstPortion * (buyerFirstRate / 100) +
-          restPortion * (buyerRestRate / 100);
-
-        const listingComm = totalComm - buyerComm;
-
-        resultTotal.textContent = currency.format(totalComm);
-        resultBuyer.textContent = currency.format(buyerComm);
-        resultListing.textContent = currency.format(listingComm);
-
-        if (gstCheckbox.checked) {
-          const gstTotal = totalComm * 0.05;
-          const totalWithGst = totalComm + gstTotal;
-
-          gstTotalLine.style.display = "flex";
-          totalWithGstLine.style.display = "flex";
-          resultGstTotal.textContent = currency.format(gstTotal);
-          resultTotalWithGst.textContent = currency.format(totalWithGst);
-        }
-
-        resultsBox.style.display = "block";
-        return true;
-      }
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        computeAndRenderCommission();
       });
 
-      gstCheckbox.addEventListener("change", function () {
+      gstCheckbox.addEventListener("change", () => {
         if (priceInput.value.trim()) {
-          computeAndRenderCommission();
+          calculator.run();
         }
       });
     })();
 
     // ===== Seller Net Sheet =====
-    (function () {
-      const form = document.getElementById("form-net");
-      const saleInput = document.getElementById("net-sale-price");
-      const mortInput = document.getElementById("net-mortgage");
-      const commInput = document.getElementById("net-commission");
-      const otherInput = document.getElementById("net-other");
-      const errorDiv = document.getElementById("net-error");
-
-      const resultsBox = document.getElementById("net-results");
-      const resultSale = document.getElementById("net-result-sale");
-      const resultDeductions = document.getElementById("net-result-deductions");
-      const resultNet = document.getElementById("net-result-net");
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-
-        const sale = parseCurrencyString(saleInput.value);
-        const mort = parseCurrencyString(mortInput.value);
-        const comm = parseCurrencyString(commInput.value);
-        const other = parseCurrencyString(otherInput.value);
-
+    createCalculator({
+      formId: "form-net",
+      errorId: "net-error",
+      resultsId: "net-results",
+      compute() {
+        const sale = readCurrency("net-sale-price");
         if (!sale || sale <= 0) {
-          errorDiv.textContent = "Please enter a valid sale price.";
-          return;
+          return { error: "Please enter a valid sale price." };
         }
+        rememberPrice(sale);
 
-        lastPriceDigits = String(Math.round(sale));
+        const deductions =
+          readCurrency("net-mortgage") + readCurrency("net-commission") + readCurrency("net-other");
 
-        const deductions = mort + comm + other;
-        const net = sale - deductions;
-
-        resultSale.textContent = currency.format(sale);
-        resultDeductions.textContent = currency.format(deductions);
-        resultNet.textContent = currency.format(net);
-
-        resultsBox.style.display = "block";
-      });
-    })();
+        return {
+          results: {
+            "net-result-sale": sale,
+            "net-result-deductions": deductions,
+            "net-result-net": sale - deductions
+          }
+        };
+      }
+    });
 
     // ===== Mortgage Payment =====
-    (function () {
-      const form = document.getElementById("form-mortgage");
-      const loanInput = document.getElementById("mort-loan");
-      const rateInput = document.getElementById("mort-rate");
-      const yearsInput = document.getElementById("mort-years");
-      const freqSelect = document.getElementById("mort-frequency");
-      const errorDiv = document.getElementById("mort-error");
-
-      const resultsBox = document.getElementById("mort-results");
-      const resultLoan = document.getElementById("mort-result-loan");
-      const resultPayment = document.getElementById("mort-result-payment");
-      const resultPerYear = document.getElementById("mort-result-peryear");
-      const resultInterest = document.getElementById("mort-result-interest");
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-
-        const loan = parseCurrencyString(loanInput.value);
-        const rate = parseFloat(rateInput.value);
-        const years = parseInt(yearsInput.value, 10);
-        const freq = freqSelect.value;
+    createCalculator({
+      formId: "form-mortgage",
+      errorId: "mort-error",
+      resultsId: "mort-results",
+      compute() {
+        const loan = readCurrency("mort-loan");
+        const rate = readNumber("mort-rate");
+        const years = parseInt($("mort-years").value, 10);
 
         if (!loan || loan <= 0) {
-          errorDiv.textContent = "Please enter a valid loan amount.";
-          return;
+          return { error: "Please enter a valid loan amount." };
         }
         if (!rate || rate <= 0 || !years || years <= 0) {
-          errorDiv.textContent = "Please enter a valid rate and amortization.";
-          return;
+          return { error: "Please enter a valid rate and amortization." };
         }
+        rememberPrice(loan);
 
-        lastPriceDigits = String(Math.round(loan));
-
-        const paymentsPerYear = freq === "biweekly" ? 26 : 12;
+        const paymentsPerYear = $("mort-frequency").value === "biweekly" ? 26 : 12;
         const n = years * paymentsPerYear;
         const r = rate / 100 / paymentsPerYear;
 
         const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-        const totalPaid = payment * n;
-        const totalInterest = totalPaid - loan;
 
-        resultLoan.textContent = currency.format(loan);
-        resultPayment.textContent = currency.format(payment);
-        resultPerYear.textContent = paymentsPerYear.toString();
-        resultInterest.textContent = currency.format(totalInterest);
-
-        resultsBox.style.display = "block";
-      });
-    })();
+        return {
+          results: {
+            "mort-result-loan": loan,
+            "mort-result-payment": payment,
+            "mort-result-peryear": paymentsPerYear.toString(),
+            "mort-result-interest": payment * n - loan
+          }
+        };
+      }
+    });
 
     // ===== Flip / Investment Profit =====
-    (function () {
-      const form = document.getElementById("form-flip");
-      const purchaseInput = document.getElementById("flip-purchase");
-      const renoInput = document.getElementById("flip-reno");
-      const holdingInput = document.getElementById("flip-holding");
-      const otherInput = document.getElementById("flip-other");
-      const saleInput = document.getElementById("flip-sale");
-      const errorDiv = document.getElementById("flip-error");
-
-      const resultsBox = document.getElementById("flip-results");
-      const resultCost = document.getElementById("flip-result-cost");
-      const resultProfit = document.getElementById("flip-result-profit");
-      const resultRoi = document.getElementById("flip-result-roi");
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        errorDiv.textContent = "";
-        resultsBox.style.display = "none";
-
-        const purchase = parseCurrencyString(purchaseInput.value);
-        const reno = parseCurrencyString(renoInput.value);
-        const holding = parseCurrencyString(holdingInput.value);
-        const other = parseCurrencyString(otherInput.value);
-        const sale = parseCurrencyString(saleInput.value);
+    createCalculator({
+      formId: "form-flip",
+      errorId: "flip-error",
+      resultsId: "flip-results",
+      compute() {
+        const purchase = readCurrency("flip-purchase");
+        const sale = readCurrency("flip-sale");
 
         if (!purchase || purchase <= 0 || !sale || sale <= 0) {
-          errorDiv.textContent = "Please enter both purchase and resale prices.";
-          return;
+          return { error: "Please enter both purchase and resale prices." };
         }
+        rememberPrice(sale);
 
-        lastPriceDigits = String(Math.round(sale));
-
-        const totalCost = purchase + reno + holding + other;
+        const totalCost =
+          purchase + readCurrency("flip-reno") + readCurrency("flip-holding") + readCurrency("flip-other");
         const profit = sale - totalCost;
         const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
-        resultCost.textContent = currency.format(totalCost);
-        resultProfit.textContent = currency.format(profit);
-        resultRoi.textContent = roi.toFixed(1) + " %";
-
-        resultsBox.style.display = "block";
-      });
-    })();
+        return {
+          results: {
+            "flip-result-cost": totalCost,
+            "flip-result-profit": profit,
+            "flip-result-roi": roi.toFixed(1) + " %"
+          }
+        };
+      }
+    });
   </script>
 </body>
 </html>
