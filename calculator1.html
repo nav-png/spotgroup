@@ -654,7 +654,7 @@
             <span id="mort-result-interest" class="result-value"></span>
           </div>
           <p class="note">
-            Uses standard mortgage math with fixed rate over full amortization. Real-world payments can vary by lender and product.
+            Uses Canadian mortgage math – the rate is compounded semi-annually, not in advance – over the full amortization. Real-world payments can vary by lender and product.
           </p>
         </div>
       </div>
@@ -1259,7 +1259,11 @@
           lastPriceDigits = String(Math.round(loan));
 
           const n = years * paymentsPerYear;
-          const r = rate / 100 / paymentsPerYear;
+          // Canadian mortgages quote a nominal rate compounded semi-annually
+          // (Interest Act s. 6), so the quoted rate is converted to the
+          // equivalent periodic rate rather than divided by the payment count.
+          const semiAnnualRate = rate / 100 / 2;
+          const r = Math.pow(1 + semiAnnualRate, 2 / paymentsPerYear) - 1;
 
           const payment = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
           if (!Number.isFinite(payment)) {
