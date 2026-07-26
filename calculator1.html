@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>BC Real Estate Calculator Hub – Spot Group</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'" />
+  <meta name="referrer" content="no-referrer" />
   <style>
     :root {
       --bg: #000000;
@@ -720,7 +723,8 @@
       if (!str) return 0;
       const cleaned = str.replace(/[^0-9.]/g, "");
       if (!cleaned) return 0;
-      return parseFloat(cleaned);
+      const value = parseFloat(cleaned);
+      return Number.isFinite(value) ? value : 0;
     }
 
     function addBusinessDays(startDate, days) {
