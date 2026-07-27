@@ -50,7 +50,7 @@ export default async function HomePage() {
             <div className="grid gap-12 lg:grid-cols-[1.35fr_1fr] lg:items-end">
               <div>
                 <p className="eyebrow">Who we are</p>
-                <h2 className="display-lg mt-6 max-w-[22ch]">{positioning.statement}</h2>
+                <h2 className="display-md mt-6 max-w-[26ch]">{positioning.statement}</h2>
               </div>
               <div>
                 <p className="text-base leading-relaxed text-ink-500">{positioning.body}</p>

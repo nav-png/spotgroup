@@ -77,7 +77,7 @@ export function SiteHeader() {
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-full px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] transition hover:text-spot ${
+                    className={`whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] transition hover:text-spot ${
                       active ? "text-spot" : ""
                     }`}
                   >
@@ -102,7 +102,7 @@ export function SiteHeader() {
                     aria-expanded={isOpen}
                     aria-haspopup="true"
                     onClick={() => setOpenDropdown(isOpen ? null : item.label)}
-                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] transition hover:text-spot ${
+                    className={`flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] transition hover:text-spot ${
                       active || isOpen ? "text-spot" : ""
                     }`}
                   >
@@ -156,7 +156,7 @@ export function SiteHeader() {
           <div className="flex items-center gap-2 sm:gap-3">
             <a
               href={`tel:${site.agent.phoneHref}`}
-              className="hidden text-[13px] font-semibold tracking-[0.08em] transition hover:text-spot lg:inline"
+              className="hidden whitespace-nowrap text-[13px] font-semibold tracking-[0.08em] transition hover:text-spot 2xl:inline"
             >
               {site.agent.phone}
             </a>
