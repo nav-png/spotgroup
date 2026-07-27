@@ -2,98 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BC Real Estate Calculator Hub – Spot Group</title>
+  <title>Spot Group Deal Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="calculator.css" />
 </head>
 <body>
-  <div class="app">
-    <div class="app-header">
-      <div class="logo-wrap">
-        <!-- Inline Spot Group smiley logo (no external file needed) -->
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="40"
-                  fill="none"
-                  stroke="#e5e0d2"
-                  stroke-width="4" />
-          <!-- eyes -->
-          <path d="M35 45 Q 40 40 45 45"
-                fill="none"
-                stroke="#e5e0d2"
-                stroke-linecap="round"
-                stroke-width="4" />
-          <path d="M55 45 Q 60 40 65 45"
-                fill="none"
-                stroke="#e5e0d2"
-                stroke-linecap="round"
-                stroke-width="4" />
-          <!-- smile -->
-          <path d="M35 60 Q 50 75 65 60"
-                fill="none"
-                stroke="#e5e0d2"
-                stroke-linecap="round"
-                stroke-width="4" />
-          <!-- text -->
-          <text x="50" y="84"
-                text-anchor="middle"
-                font-size="6"
-                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-                fill="#e5e0d2"
-                letter-spacing="1.4">
-            SPOT GROUP REAL ESTATE
-          </text>
-        </svg>
-      </div>
+  <div class="app-shell">
+    <header class="hero">
       <div>
-        <h1>Spot Group Deal Calculator</h1>
-        <p class="subtitle"></p>
-        <div class="accent-pill">
-          <span></span> • <span>In-house calculators</span>
-        </div>
+        <p class="eyebrow">Spot Group Real Estate</p>
+        <h1>Deal<span>Calc</span></h1>
+        <p class="hero-copy">In-house BC deal math: rescission, transfer tax, commission, net sheets, mortgage and flips.</p>
       </div>
-    </div>
+      <div class="hero-actions">
+        <a class="app-link" href="https://stupendous-crepe-ebecc9.netlify.app/index.html">Open LeadSpotter →</a>
+      </div>
+    </header>
 
     <!-- Rescission Calculator -->
     <div class="accordion-item open">
-      <button class="accordion-header" type="button">
-        <span class="label">Rescission Fee (HBRP – 0.25%)</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="true" aria-controls="body-rescission">
+        <span>Rescission Fee (HBRP – 0.25%)</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-rescission">
-          <div class="field">
-            <label for="resc-price">Purchase Price (CAD)</label>
+      <div class="accordion-body" id="body-rescission">
+        <form id="form-rescission" novalidate>
+          <label for="resc-price">
+            Purchase Price (CAD)
             <input type="text" id="resc-price" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 880000" autocomplete="off" />
-            <div class="subdued">Type numbers only – commas appear automatically as you type.</div>
-          </div>
-          <div class="field">
-            <label for="resc-date">Offer Accepted Date (optional)</label>
+                   inputmode="decimal" placeholder="e.g. 880,000" autocomplete="off" />
+          </label>
+          <p class="hint">Commas appear automatically. Cents are allowed.</p>
+          <label for="resc-date">
+            Offer Accepted Date (optional)
             <input type="date" id="resc-date" />
-            <div class="subdued">
-              Used to estimate the 3-business-day rescission deadline (skips weekends).
-            </div>
-          </div>
-          <button type="submit">Calculate Rescission</button>
-          <div id="resc-error" class="error"></div>
+          </label>
+          <p class="hint">Estimates the 3-business-day rescission deadline, skipping weekends and BC statutory holidays.</p>
+          <button class="primary" type="submit">Calculate Rescission</button>
+          <div id="resc-error" class="error" role="alert"></div>
         </form>
 
         <div id="resc-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Purchase Price:</span>
+            <span class="result-label">Purchase Price</span>
             <span id="resc-result-price" class="result-value"></span>
           </div>
-          <div class="result-line">
-            <span class="result-label">Rescission Fee (0.25%):</span>
+          <div class="result-line emphasis">
+            <span class="result-label">Rescission Fee (0.25%)</span>
             <span id="resc-result-fee" class="result-value"></span>
           </div>
-          <div class="result-line" id="resc-deadline-line" style="display:none; margin-top:8px;">
-            <span class="result-label">Rescission Deadline:</span>
+          <div class="result-line" id="resc-deadline-line" style="display:none;">
+            <span class="result-label">Rescission Deadline</span>
             <span id="resc-result-deadline" class="result-value"></span>
           </div>
           <p class="note">
-            Rescission period is <strong>3 business days</strong> from acceptance. Weekends and holidays
-            don’t count legally – this tool skips weekends only.
+            The rescission period is <strong>3 business days</strong> after acceptance. Holiday dates are covered through 2027 —
+            confirm the deadline with your brokerage before relying on it.
           </p>
         </div>
       </div>
@@ -101,39 +66,59 @@
 
     <!-- PTT Calculator -->
     <div class="accordion-item">
-      <button class="accordion-header" type="button">
-        <span class="label">Property Transfer Tax (Simple BC)</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="false" aria-controls="body-ptt">
+        <span>BC Property Transfer Tax</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-ptt">
-          <div class="field">
-            <label for="ptt-price">Purchase Price (CAD)</label>
+      <div class="accordion-body" id="body-ptt">
+        <form id="form-ptt" novalidate>
+          <label for="ptt-price">
+            Purchase Price (CAD)
             <input type="text" id="ptt-price" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 880000" autocomplete="off" />
-          </div>
-          <button type="submit">Calculate PTT</button>
-          <div id="ptt-error" class="error"></div>
+                   inputmode="decimal" placeholder="e.g. 880,000" autocomplete="off" />
+          </label>
+          <label class="checkbox-row" for="ptt-residential">
+            <input type="checkbox" id="ptt-residential" checked />
+            <span>Residential property (adds the 2% further tax above $3M)</span>
+          </label>
+          <label class="checkbox-row" for="ptt-foreign">
+            <input type="checkbox" id="ptt-foreign" />
+            <span>Foreign buyer in a specified area (adds 20%)</span>
+          </label>
+          <button class="primary" type="submit">Calculate PTT</button>
+          <div id="ptt-error" class="error" role="alert"></div>
         </form>
         <div id="ptt-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Purchase Price:</span>
+            <span class="result-label">Purchase Price</span>
             <span id="ptt-result-price" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">PTT on first $200,000 (1%):</span>
-            <span id="ptt-result-first" class="result-value"></span>
+            <span class="result-label">1% on first $200,000</span>
+            <span id="ptt-result-t1" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">PTT on balance (2%):</span>
-            <span id="ptt-result-balance" class="result-value"></span>
+            <span class="result-label">2% on $200,000 – $2,000,000</span>
+            <span id="ptt-result-t2" class="result-value"></span>
           </div>
-          <div class="result-line">
-            <span class="result-label">Total PTT:</span>
+          <div class="result-line" id="ptt-t3-line" style="display:none;">
+            <span class="result-label">3% above $2,000,000</span>
+            <span id="ptt-result-t3" class="result-value"></span>
+          </div>
+          <div class="result-line" id="ptt-t4-line" style="display:none;">
+            <span class="result-label">Further 2% above $3,000,000</span>
+            <span id="ptt-result-t4" class="result-value"></span>
+          </div>
+          <div class="result-line" id="ptt-foreign-line" style="display:none;">
+            <span class="result-label">Additional tax (20%)</span>
+            <span id="ptt-result-foreign" class="result-value"></span>
+          </div>
+          <div class="result-line emphasis">
+            <span class="result-label">Total PTT</span>
             <span id="ptt-result-total" class="result-value"></span>
           </div>
           <p class="note">
-            Simple BC PTT: 1% on first $200,000, 2% on the balance. Does not handle luxury tiers or special exemptions.
+            General PTT rates only. Does not apply first-time buyer, newly built home, or other exemptions.
           </p>
         </div>
       </div>
@@ -141,98 +126,100 @@
 
     <!-- Commission Calculator -->
     <div class="accordion-item">
-      <button class="accordion-header" type="button">
-        <span class="label">Commission Calculator</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="false" aria-controls="body-commission">
+        <span>Commission Calculator</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-commission">
-          <div class="field">
-            <label for="comm-price">Sale Price (CAD)</label>
+      <div class="accordion-body" id="body-commission">
+        <form id="form-commission" novalidate>
+          <label for="comm-price">
+            Sale Price (CAD)
             <input type="text" id="comm-price" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 1100000" autocomplete="off" />
-          </div>
+                   inputmode="decimal" placeholder="e.g. 1,100,000" autocomplete="off" />
+          </label>
 
-          <div class="field">
-            <label>Commission Rates (%)</label>
-            <div class="rate-table">
-              <div class="rate-header">
-                <div></div>
-                <div>1st $100,000</div>
-                <div>Balance</div>
+          <p class="rate-table-label">Commission Rates (%)</p>
+          <div class="rate-table">
+            <div class="rate-header">
+              <div></div>
+              <div>1st $100,000</div>
+              <div>Balance</div>
+            </div>
+
+            <div class="rate-row">
+              <div class="rate-row-label">Total</div>
+              <div>
+                <input type="number" id="comm-total-first-rate" value="7" step="0.01" min="0" max="100"
+                       aria-label="Total rate on first $100,000" />
               </div>
-
-              <div class="rate-row">
-                <div class="rate-row-label">Total</div>
-                <div>
-                  <input type="number" id="comm-total-first-rate" value="7" step="0.01" />
-                </div>
-                <div>
-                  <input type="number" id="comm-total-rest-rate" value="4" step="0.01" />
-                </div>
-              </div>
-
-              <div class="rate-row">
-                <div class="rate-row-label">Buyer Agent</div>
-                <div>
-                  <input type="number" id="comm-buyer-first-rate" value="3.22" step="0.01" />
-                </div>
-                <div>
-                  <input type="number" id="comm-buyer-rest-rate" value="1.15" step="0.01" />
-                </div>
-              </div>
-
-              <div class="rate-row">
-                <div class="rate-row-label">Listing Agent</div>
-                <div>
-                  <input type="number" id="comm-listing-first-rate" value="3.78" step="0.01" readonly />
-                </div>
-                <div>
-                  <input type="number" id="comm-listing-rest-rate" value="2.85" step="0.01" readonly />
-                </div>
+              <div>
+                <input type="number" id="comm-total-rest-rate" value="4" step="0.01" min="0" max="100"
+                       aria-label="Total rate on balance" />
               </div>
             </div>
-            <div class="subdued">
-              Listing side is automatically calculated as Total minus Buyer for each tier.
+
+            <div class="rate-row">
+              <div class="rate-row-label">Buyer</div>
+              <div>
+                <input type="number" id="comm-buyer-first-rate" value="3.22" step="0.01" min="0" max="100"
+                       aria-label="Buyer agent rate on first $100,000" />
+              </div>
+              <div>
+                <input type="number" id="comm-buyer-rest-rate" value="1.15" step="0.01" min="0" max="100"
+                       aria-label="Buyer agent rate on balance" />
+              </div>
+            </div>
+
+            <div class="rate-row">
+              <div class="rate-row-label">Listing</div>
+              <div>
+                <input type="number" id="comm-listing-first-rate" value="3.78" step="0.01" readonly
+                       aria-label="Listing agent rate on first $100,000" />
+              </div>
+              <div>
+                <input type="number" id="comm-listing-rest-rate" value="2.85" step="0.01" readonly
+                       aria-label="Listing agent rate on balance" />
+              </div>
             </div>
           </div>
+          <p class="hint">Listing side is Total minus Buyer for each tier.</p>
 
-          <div class="field">
-            <label class="checkbox-label">
-              <input type="checkbox" id="comm-apply-gst" />
-              <span>Apply 5% GST to commission totals</span>
-            </label>
-            <div class="subdued">
-              Commissions are shown without GST by default. Tick to see GST and total including GST.
-            </div>
-          </div>
+          <label class="checkbox-row" for="comm-apply-gst">
+            <input type="checkbox" id="comm-apply-gst" />
+            <span>Apply 5% GST</span>
+          </label>
+          <p class="hint">Commissions are shown without GST by default.</p>
 
-          <button type="submit">Calculate Commission</button>
-          <div id="comm-error" class="error"></div>
+          <button class="primary" type="submit">Calculate Commission</button>
+          <div id="comm-error" class="error" role="alert"></div>
         </form>
         <div id="comm-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Total Commission (no GST):</span>
-            <span id="comm-result-total" class="result-value"></span>
-          </div>
-          <div class="result-line">
-            <span class="result-label">Buyer Agent (no GST):</span>
+            <span class="result-label">Buyer Agent</span>
             <span id="comm-result-buyer" class="result-value"></span>
           </div>
+          <div class="result-line" id="comm-buyer-gst-line" style="display:none;">
+            <span class="result-label">Buyer Agent incl. GST</span>
+            <span id="comm-result-buyer-gst" class="result-value"></span>
+          </div>
           <div class="result-line">
-            <span class="result-label">Listing Agent (no GST):</span>
+            <span class="result-label">Listing Agent</span>
             <span id="comm-result-listing" class="result-value"></span>
           </div>
+          <div class="result-line" id="comm-listing-gst-line" style="display:none;">
+            <span class="result-label">Listing Agent incl. GST</span>
+            <span id="comm-result-listing-gst" class="result-value"></span>
+          </div>
           <div class="result-line" id="comm-gst-total-line" style="display:none;">
-            <span class="result-label">GST on Total (5%):</span>
+            <span class="result-label">GST on Total (5%)</span>
             <span id="comm-result-gst-total" class="result-value"></span>
           </div>
-          <div class="result-line" id="comm-total-with-gst-line" style="display:none;">
-            <span class="result-label">Total incl. GST:</span>
-            <span id="comm-result-total-with-gst" class="result-value"></span>
+          <div class="result-line emphasis">
+            <span class="result-label" id="comm-total-label">Total Commission</span>
+            <span id="comm-result-total" class="result-value"></span>
           </div>
           <p class="note">
-            Default structure: 7% / 4% total, with buyer at 3.22% / 1.15% and listing as the difference. All rates are editable.
+            Default structure: 7% / 4% total, buyer at 3.22% / 1.15%, listing as the difference. All rates are editable.
           </p>
         </div>
       </div>
@@ -240,48 +227,51 @@
 
     <!-- Seller Net Sheet -->
     <div class="accordion-item">
-      <button class="accordion-header" type="button">
-        <span class="label">Seller Net Sheet (Simple)</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="false" aria-controls="body-net">
+        <span>Seller Net Sheet</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-net">
-          <div class="field">
-            <label for="net-sale-price">Sale Price (CAD)</label>
+      <div class="accordion-body" id="body-net">
+        <form id="form-net" novalidate>
+          <label for="net-sale-price">
+            Sale Price (CAD)
             <input type="text" id="net-sale-price" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 1100000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="net-mortgage">Mortgage Payoff (CAD)</label>
-            <input type="text" id="net-mortgage" class="currency-input" placeholder="e.g. 650000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="net-commission">Total Commission (CAD)</label>
-            <input type="text" id="net-commission" class="currency-input" placeholder="e.g. 35000" autocomplete="off" />
-            <div class="subdued">You can pull this from the Commission calculator.</div>
-          </div>
-          <div class="field">
-            <label for="net-other">Other Costs (legal, adjustments, etc.)</label>
-            <input type="text" id="net-other" class="currency-input" placeholder="e.g. 4500" autocomplete="off" />
-          </div>
-          <button type="submit">Calculate Net to Seller</button>
-          <div id="net-error" class="error"></div>
+                   inputmode="decimal" placeholder="e.g. 1,100,000" autocomplete="off" />
+          </label>
+          <label for="net-mortgage">
+            Mortgage Payoff (CAD)
+            <input type="text" id="net-mortgage" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 650,000" autocomplete="off" />
+          </label>
+          <label for="net-commission">
+            Total Commission (CAD)
+            <input type="text" id="net-commission" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 35,000" autocomplete="off" />
+          </label>
+          <p class="hint">You can pull this from the Commission calculator.</p>
+          <label for="net-other">
+            Other Costs (legal, adjustments, etc.)
+            <input type="text" id="net-other" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 4,500" autocomplete="off" />
+          </label>
+          <button class="primary" type="submit">Calculate Net to Seller</button>
+          <div id="net-error" class="error" role="alert"></div>
         </form>
         <div id="net-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Sale Price:</span>
+            <span class="result-label">Sale Price</span>
             <span id="net-result-sale" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">Total Deductions:</span>
+            <span class="result-label">Total Deductions</span>
             <span id="net-result-deductions" class="result-value"></span>
           </div>
-          <div class="result-line">
-            <span class="result-label">Estimated Net to Seller:</span>
+          <div class="result-line emphasis">
+            <span class="result-label" id="net-result-label">Estimated Net to Seller</span>
             <span id="net-result-net" class="result-value"></span>
           </div>
           <p class="note">
-            Simple estimate for quick conversations – does not replace a detailed statement of adjustments.
+            Quick estimate only – not a replacement for a statement of adjustments.
           </p>
         </div>
       </div>
@@ -289,56 +279,63 @@
 
     <!-- Mortgage Payment Calculator -->
     <div class="accordion-item">
-      <button class="accordion-header" type="button">
-        <span class="label">Mortgage Payment Calculator</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="false" aria-controls="body-mortgage">
+        <span>Mortgage Payment</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-mortgage">
-          <div class="field">
-            <label for="mort-loan">Loan Amount (CAD)</label>
-            <input type="text" id="mort-loan" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 700000" autocomplete="off" />
+      <div class="accordion-body" id="body-mortgage">
+        <form id="form-mortgage" novalidate>
+          <label for="mort-loan">
+            Loan Amount (CAD)
+            <input type="text" id="mort-loan" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 700,000" autocomplete="off" />
+          </label>
+          <div class="grid two">
+            <label for="mort-rate">
+              Interest Rate (% per year)
+              <input type="number" id="mort-rate" value="5.5" step="0.01" min="0" max="50" />
+            </label>
+            <label for="mort-years">
+              Amortization (years)
+              <input type="number" id="mort-years" value="25" step="0.5" min="1" max="50" />
+            </label>
           </div>
-          <div class="inline-fields">
-            <div class="field">
-              <label for="mort-rate">Interest Rate (% per year)</label>
-              <input type="number" id="mort-rate" value="5.5" step="0.01" />
-            </div>
-            <div class="field">
-              <label for="mort-years">Amortization (years)</label>
-              <input type="number" id="mort-years" value="25" step="1" />
-            </div>
-          </div>
-          <div class="field">
-            <label for="mort-frequency">Payment Frequency</label>
+          <label for="mort-frequency">
+            Payment Frequency
             <select id="mort-frequency">
-              <option value="monthly">Monthly</option>
+              <option value="monthly">Monthly (12/yr)</option>
               <option value="biweekly">Bi-weekly (26/yr)</option>
+              <option value="accelerated-biweekly">Accelerated bi-weekly (26/yr)</option>
+              <option value="weekly">Weekly (52/yr)</option>
             </select>
-          </div>
-          <button type="submit">Calculate Payment</button>
-          <div id="mort-error" class="error"></div>
+          </label>
+          <button class="primary" type="submit">Calculate Payment</button>
+          <div id="mort-error" class="error" role="alert"></div>
         </form>
         <div id="mort-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Loan Amount:</span>
+            <span class="result-label">Loan Amount</span>
             <span id="mort-result-loan" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">Payment:</span>
-            <span id="mort-result-payment" class="result-value"></span>
-          </div>
-          <div class="result-line">
-            <span class="result-label">Payments per Year:</span>
+            <span class="result-label">Payments per Year</span>
             <span id="mort-result-peryear" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">Total Interest (full amortization):</span>
+            <span class="result-label">Total Interest</span>
             <span id="mort-result-interest" class="result-value"></span>
           </div>
+          <div class="result-line" id="mort-payoff-line" style="display:none;">
+            <span class="result-label">Paid Off In</span>
+            <span id="mort-result-payoff" class="result-value"></span>
+          </div>
+          <div class="result-line emphasis">
+            <span class="result-label">Payment</span>
+            <span id="mort-result-payment" class="result-value"></span>
+          </div>
           <p class="note">
-            Uses standard mortgage math with fixed rate over full amortization. Real-world payments can vary by lender and product.
+            Uses Canadian semi-annual compounding, as required for fixed-rate mortgages. Accelerated bi-weekly pays half the
+            monthly payment every two weeks, which shortens the amortization.
           </p>
         </div>
       </div>
@@ -346,52 +343,55 @@
 
     <!-- Flip / Investment Profit Calculator -->
     <div class="accordion-item">
-      <button class="accordion-header" type="button">
-        <span class="label">Flip / Investment Profit</span>
-        <span class="chevron">▶</span>
+      <button class="accordion-header" type="button" aria-expanded="false" aria-controls="body-flip">
+        <span>Flip / Investment Profit</span>
+        <span class="chevron" aria-hidden="true">▶</span>
       </button>
-      <div class="accordion-body">
-        <form id="form-flip">
-          <div class="field">
-            <label for="flip-purchase">Purchase Price (CAD)</label>
+      <div class="accordion-body" id="body-flip">
+        <form id="form-flip" novalidate>
+          <label for="flip-purchase">
+            Purchase Price (CAD)
             <input type="text" id="flip-purchase" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 900000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="flip-reno">Renovation / Construction Costs (CAD)</label>
-            <input type="text" id="flip-reno" class="currency-input" placeholder="e.g. 80000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="flip-holding">Holding Costs (interest, taxes, utilities, etc.)</label>
-            <input type="text" id="flip-holding" class="currency-input" placeholder="e.g. 18000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="flip-other">Other Costs (realtor fees, legal, misc.)</label>
-            <input type="text" id="flip-other" class="currency-input" placeholder="e.g. 40000" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label for="flip-sale">Resale Price (CAD)</label>
-            <input type="text" id="flip-sale" class="currency-input" data-suggest-price="true"
-                   placeholder="e.g. 1200000" autocomplete="off" />
-          </div>
-          <button type="submit">Calculate Profit</button>
-          <div id="flip-error" class="error"></div>
+                   inputmode="decimal" placeholder="e.g. 900,000" autocomplete="off" />
+          </label>
+          <label for="flip-reno">
+            Renovation / Construction Costs (CAD)
+            <input type="text" id="flip-reno" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 80,000" autocomplete="off" />
+          </label>
+          <label for="flip-holding">
+            Holding Costs (interest, taxes, utilities)
+            <input type="text" id="flip-holding" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 18,000" autocomplete="off" />
+          </label>
+          <label for="flip-other">
+            Other Costs (realtor fees, legal, misc.)
+            <input type="text" id="flip-other" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 40,000" autocomplete="off" />
+          </label>
+          <label for="flip-sale">
+            Resale Price (CAD)
+            <input type="text" id="flip-sale" class="currency-input" inputmode="decimal"
+                   placeholder="e.g. 1,200,000" autocomplete="off" />
+          </label>
+          <button class="primary" type="submit">Calculate Profit</button>
+          <div id="flip-error" class="error" role="alert"></div>
         </form>
         <div id="flip-results" class="result-box" style="display:none;">
           <div class="result-line">
-            <span class="result-label">Total Cost:</span>
+            <span class="result-label">Total Cost</span>
             <span id="flip-result-cost" class="result-value"></span>
           </div>
           <div class="result-line">
-            <span class="result-label">Profit:</span>
-            <span id="flip-result-profit" class="result-value"></span>
-          </div>
-          <div class="result-line">
-            <span class="result-label">ROI (Profit ÷ Total Cost):</span>
+            <span class="result-label">ROI (Profit ÷ Total Cost)</span>
             <span id="flip-result-roi" class="result-value"></span>
           </div>
+          <div class="result-line emphasis">
+            <span class="result-label" id="flip-result-label">Profit</span>
+            <span id="flip-result-profit" class="result-value"></span>
+          </div>
           <p class="note">
-            Quick flip math – great for comparing opportunities. Does not include tax implications.
+            Quick flip math for comparing opportunities. Excludes PTT, GST, and income tax implications.
           </p>
         </div>
       </div>
