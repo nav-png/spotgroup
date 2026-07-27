@@ -19,6 +19,13 @@ export const propertyTypeLabels: Record<PropertyType, string> = {
   multifamily: "Small multifamily",
 };
 
+export interface OpenHouse {
+  /** ISO date, e.g. 2026-08-02 */
+  date: string;
+  start: string;
+  end: string;
+}
+
 export interface Listing {
   id: string;
   slug: string;
@@ -40,10 +47,17 @@ export interface Listing {
   yearBuilt?: number;
   description: string;
   highlights: string[];
+  /** Features and amenities shown on the property detail page. */
+  features?: string[];
   images: string[];
   listedAt: string;
   latitude?: number;
   longitude?: number;
+  /** Links the listing to a community page. */
+  communitySlug?: string;
+  /** Hand-picked for the featured rail on the home page. */
+  featured?: boolean;
+  openHouses?: OpenHouse[];
 }
 
 export interface ListingQuery {
@@ -56,7 +70,10 @@ export interface ListingQuery {
   maxPrice?: number;
   minBedrooms?: number;
   minBathrooms?: number;
-  sort?: "newest" | "price-asc" | "price-desc";
+  community?: string;
+  openHouseOnly?: boolean;
+  featuredOnly?: boolean;
+  sort?: "newest" | "price-asc" | "price-desc" | "beds-desc" | "sqft-desc";
   limit?: number;
 }
 

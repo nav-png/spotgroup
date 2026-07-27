@@ -30,7 +30,7 @@ const land = [img("1494203484021-3c454daf695d"), img("1416331108676-a22ccb276e35
  * Demo inventory used until a licensed MLS feed (CREA DDF or board IDX) is connected.
  * Shape matches what the real provider returns so pages do not change.
  */
-export const demoListings: Listing[] = [
+const baseListings: Listing[] = [
   {
     id: "1",
     slug: "16244-92-avenue-surrey",
@@ -346,3 +346,162 @@ export const demoListings: Listing[] = [
     listedAt: "2026-07-12",
   },
 ];
+
+/** Per-listing extras layered onto the base records above. */
+const extras: Record<
+  string,
+  {
+    featured?: boolean;
+    features?: string[];
+    latitude?: number;
+    longitude?: number;
+    openHouses?: Listing["openHouses"];
+  }
+> = {
+  "16244-92-avenue-surrey": {
+    featured: true,
+    latitude: 49.1704,
+    longitude: -122.7773,
+    features: [
+      "Two bedroom legal suite with separate entrance",
+      "Quartz kitchen with gas range",
+      "New roof, furnace and hot water on demand",
+      "Detached 24 x 26 shop with 200 amp service",
+      "RV parking and double gate access",
+      "Fully fenced, irrigated yard",
+    ],
+    openHouses: [
+      { date: "2026-08-01", start: "1:00 PM", end: "3:00 PM" },
+      { date: "2026-08-02", start: "2:00 PM", end: "4:00 PM" },
+    ],
+  },
+  "2208-1188-pinetree-way-coquitlam": {
+    featured: true,
+    latitude: 49.2794,
+    longitude: -122.7932,
+    features: [
+      "Corner plan with wraparound glass",
+      "Air conditioning throughout",
+      "Two side-by-side parking stalls",
+      "Concierge, gym and lounge",
+      "Rentals and pets permitted",
+    ],
+    openHouses: [{ date: "2026-08-02", start: "12:00 PM", end: "2:00 PM" }],
+  },
+  "8721-152-street-surrey-land-assembly": {
+    featured: true,
+    latitude: 49.1602,
+    longitude: -122.8014,
+    features: [
+      "1.4 acre three-property assembly",
+      "Townhouse designation in the Fleetwood Plan",
+      "Servicing and density analysis complete",
+      "Existing homes provide holding income",
+    ],
+  },
+  "13455-232-street-maple-ridge": {
+    featured: true,
+    latitude: 49.2361,
+    longitude: -122.5457,
+    features: [
+      "Two bedroom legal suite plus detached coach house",
+      "Radiant in-floor heat with central air",
+      "Oversized triple garage",
+      "2-5-10 new home warranty",
+      "Built by SPOT Group",
+    ],
+    openHouses: [{ date: "2026-08-01", start: "11:00 AM", end: "1:00 PM" }],
+  },
+  "45-19560-68-avenue-langley": {
+    latitude: 49.1362,
+    longitude: -122.6934,
+    features: [
+      "End unit with extra windows",
+      "Double side-by-side garage",
+      "Fenced yard backing greenbelt",
+      "Low monthly strata fee",
+    ],
+  },
+  "3390-e-27th-avenue-vancouver": {
+    featured: true,
+    latitude: 49.2469,
+    longitude: -123.0357,
+    features: [
+      "33 x 122 lot with lane access",
+      "Preliminary multiplex massing study",
+      "Original oak floors and coved ceilings",
+      "Separate basement entrance",
+    ],
+  },
+  "7188-138-street-surrey-off-market": {
+    latitude: 49.1305,
+    longitude: -122.8484,
+    features: [
+      "Sold strictly as-is, where-is",
+      "7,841 sq ft lot",
+      "Renovation scope and budget available",
+      "Flexible completion for cash buyers",
+    ],
+  },
+  "10422-city-parkway-surrey-exclusive": {
+    featured: true,
+    latitude: 49.1889,
+    longitude: -122.8489,
+    features: [
+      "Eight self-contained suites",
+      "Two blocks to Surrey Central SkyTrain",
+      "Rents roughly 20% under market",
+      "Rent roll and expenses released after NDA",
+    ],
+  },
+  "2680-mccallum-road-abbotsford-exclusive": {
+    latitude: 49.0431,
+    longitude: -122.3079,
+    features: [
+      "Building permits ready to issue",
+      "Duplex plans included",
+      "Fixed-price construction budget",
+      "Fully serviced lot",
+    ],
+  },
+  "6055-fraser-street-vancouver": {
+    latitude: 49.2262,
+    longitude: -123.0906,
+    features: ["Corner plan", "Two parking stalls", "Rentals allowed"],
+  },
+  "8020-172-street-surrey-new-construction": {
+    featured: true,
+    latitude: 49.1596,
+    longitude: -122.7405,
+    features: [
+      "Two of six homes remaining",
+      "Side-by-side double garage",
+      "Ground floor flex bedroom",
+      "2-5-10 warranty, assignable deposits",
+    ],
+    openHouses: [{ date: "2026-08-03", start: "1:00 PM", end: "4:00 PM" }],
+  },
+  "22415-old-yale-road-langley": {
+    latitude: 49.0925,
+    longitude: -122.6293,
+    features: [
+      "21,780 sq ft park-like lot",
+      "Single level rancher layout",
+      "Inside the Murrayville plan area",
+      "Detached workshop",
+    ],
+  },
+};
+
+const citySlug = (city: string) => city.toLowerCase().replace(/\s+/g, "-");
+
+/**
+ * Demo inventory shown until a licensed MLS® feed (CREA DDF or board IDX) is
+ * connected. Every surface that renders these records labels them as
+ * demonstration data.
+ */
+export const demoListings: Listing[] = baseListings.map((listing) => ({
+  ...listing,
+  communitySlug: citySlug(listing.city),
+  ...extras[listing.slug],
+}));

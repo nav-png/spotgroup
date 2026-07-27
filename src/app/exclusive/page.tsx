@@ -1,99 +1,103 @@
 import type { Metadata } from "next";
 
-import { LeadForm } from "@/components/lead-form";
-import { ListingGrid } from "@/components/listing-grid";
-import { PageHero, SectionHeading } from "@/components/section";
+import { LeadForm } from "@/components/forms/lead-form";
+import { PageHero } from "@/components/layout/page-hero";
+import { PropertyGrid } from "@/components/property/property-grid";
 import { getListingsProvider } from "@/lib/listings/provider";
+import { media } from "@/lib/media";
 
 export const metadata: Metadata = {
-  title: "Exclusive & Off-Market Listings",
+  title: "Exclusive & Off-Market",
   description:
-    "Off-market Lower Mainland properties: assemblies, tenanted rental buildings, estate sales, as-is fixers and builder inventory released privately.",
+    "Exclusive and off-market Lower Mainland inventory represented by SPOT Group — development sites, as-is homes and pre-MLS® listings.",
+  alternates: { canonical: "/exclusive" },
 };
 
-const reasons = [
-  {
-    title: "Sellers who want privacy",
-    body: "Estate sales, tenanted buildings and owners who do not want a sign on the lawn or 30 showings.",
-  },
-  {
-    title: "Deals that need the right buyer",
-    body: "Assemblies, permit-ready lots and as-is fixers where the value is obvious to a builder and confusing to everyone else.",
-  },
-  {
-    title: "Our own inventory",
-    body: "Properties we have bought, are building or are wholesaling — released to our buyer list first.",
-  },
-];
-
 export default async function ExclusivePage() {
-  const result = await getListingsProvider().search({ category: "exclusive" });
+  const { listings } = await getListingsProvider().search({
+    category: "exclusive",
+    sort: "price-desc",
+  });
 
   return (
     <>
       <PageHero
-        eyebrow="Not on MLS®"
-        title="Exclusive & off-market listings"
-        description="A private inventory of Lower Mainland properties we represent outside of the MLS® system — plus early access to everything before it goes public."
+        eyebrow="Exclusive & off-market"
+        title={
+          <>
+            Before it hits MLS<span className="text-spot">®</span>
+          </>
+        }
+        lede="Some sellers do not want signs, photos or foot traffic. We place those properties quietly with buyers who can perform."
+        image={media.arches}
       />
 
-      <div className="container-page py-16">
-        <ListingGrid
-          listings={result.listings}
-          empty="No exclusive listings are public right now — join the list below and we will send them first."
-        />
-
-        <div className="mt-16 grid gap-5 md:grid-cols-3">
-          {reasons.map((reason) => (
-            <div key={reason.title} className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
-              <p className="font-display text-lg font-semibold">{reason.title}</p>
-              <p className="mt-2 text-sm text-ink-muted">{reason.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-16 grid gap-10 rounded-2xl bg-sand p-6 sm:p-10 lg:grid-cols-2">
+      <section className="section">
+        <div className="shell grid gap-16 lg:grid-cols-[1.5fr_1fr] lg:gap-20">
           <div>
-            <SectionHeading
-              eyebrow="Buyer list"
-              title="Get off-market deals before they are public"
-              description="Tell us what you are looking for and we will send matching properties — including the ones that never reach MLS®."
-            />
-            <ul className="space-y-2 text-sm text-ink-muted">
-              <li>• Assemblies and development sites</li>
-              <li>• Rental buildings and small multifamily</li>
-              <li>• As-is fixers, estate sales and wholesale contracts</li>
-              <li>• Presale and builder inventory</li>
-            </ul>
+            <h2 className="display-md">
+              Current exclusive inventory
+              <span className="text-spot">.</span>
+            </h2>
+            <p className="mt-5 max-w-prose text-base leading-relaxed text-ink-500">
+              Limited detail is published deliberately. Register below and we will send the full
+              package — address, condition, rent roll or zoning analysis where it applies.
+            </p>
+            <div className="mt-12">
+              <PropertyGrid
+                listings={listings}
+                columns={2}
+                emptyTitle="Nothing published right now"
+                emptyBody="Off-market inventory moves fast and is often placed before it is published. Register and we will contact you directly."
+              />
+            </div>
           </div>
 
-          <LeadForm
-            leadType="exclusive-access"
-            source="exclusive-page"
-            submitLabel="Join the buyer list"
-            successTitle="You're on the list."
-            successBody="We will email you when something matching your criteria comes up."
-            fields={[
-              { name: "name", label: "Name", required: true },
-              { name: "email", label: "Email", type: "email", required: true },
-              { name: "phone", label: "Phone", type: "tel" },
-              {
-                name: "buyerType",
-                label: "I am a",
-                type: "select",
-                required: true,
-                options: ["Investor", "Builder", "Developer", "Owner-occupier", "Wholesaler"],
-              },
-              {
-                name: "criteria",
-                label: "What are you looking for?",
-                type: "textarea",
-                placeholder: "Budget, areas, property type, timeline, financing.",
-              },
-            ]}
-          />
+          <aside className="lg:sticky lg:top-32 lg:self-start">
+            <div className="panel-dark p-8">
+              <p className="eyebrow-light">Off-market list</p>
+              <h3 className="display-sm mt-4">Get the private list</h3>
+              <p className="mt-4 text-sm text-white/70">
+                Tell us what you buy and we will only send what fits.
+              </p>
+              <div className="mt-8">
+                <LeadForm
+                  leadType="exclusive-access"
+                  tone="dark"
+                  bare
+                  source="exclusive-page"
+                  submitLabel="Request access"
+                  successTitle="You are on the list."
+                  successBody="We will reach out as soon as something matches your criteria."
+                  fields={[
+                    { name: "name", label: "Name", required: true },
+                    { name: "email", label: "Email", type: "email", required: true },
+                    { name: "phone", label: "Phone", type: "tel" },
+                    {
+                      name: "buyerType",
+                      label: "What describes you",
+                      type: "select",
+                      options: [
+                        "Investor",
+                        "Builder / developer",
+                        "Owner-occupier",
+                        "Wholesaler",
+                        "Other",
+                      ],
+                    },
+                    {
+                      name: "criteria",
+                      label: "What are you looking for?",
+                      type: "textarea",
+                      placeholder: "Duplex lots in Surrey under $1.6M, holding property with a suite…",
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
+      </section>
     </>
   );
 }

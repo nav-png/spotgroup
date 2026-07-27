@@ -11,6 +11,7 @@ export interface ListingsProvider {
   search(query: ListingQuery): Promise<ListingsResult>;
   getBySlug(slug: string): Promise<Listing | null>;
   cities(): Promise<string[]>;
+  similar(listing: Listing, limit?: number): Promise<Listing[]>;
 }
 
 function matches(listing: Listing, query: ListingQuery): boolean {
@@ -22,6 +23,9 @@ function matches(listing: Listing, query: ListingQuery): boolean {
   if (query.maxPrice !== undefined && listing.price > query.maxPrice) return false;
   if (query.minBedrooms !== undefined && listing.bedrooms < query.minBedrooms) return false;
   if (query.minBathrooms !== undefined && listing.bathrooms < query.minBathrooms) return false;
+  if (query.community && listing.communitySlug !== query.community) return false;
+  if (query.openHouseOnly && !(listing.openHouses && listing.openHouses.length > 0)) return false;
+  if (query.featuredOnly && !listing.featured) return false;
 
   if (query.keyword) {
     const haystack = [
@@ -50,6 +54,10 @@ function sortListings(listings: Listing[], sort: ListingQuery["sort"]): Listing[
       return sorted.sort((a, b) => a.price - b.price);
     case "price-desc":
       return sorted.sort((a, b) => b.price - a.price);
+    case "beds-desc":
+      return sorted.sort((a, b) => b.bedrooms - a.bedrooms);
+    case "sqft-desc":
+      return sorted.sort((a, b) => b.livingAreaSqFt - a.livingAreaSqFt);
     default:
       return sorted.sort((a, b) => Date.parse(b.listedAt) - Date.parse(a.listedAt));
   }
@@ -79,6 +87,20 @@ export class DemoListingsProvider implements ListingsProvider {
 
   async cities(): Promise<string[]> {
     return Array.from(new Set(this.listings.map((listing) => listing.city))).sort();
+  }
+
+  /** Same city, similar price — used for "similar properties". */
+  async similar(listing: Listing, limit = 3): Promise<Listing[]> {
+    return this.listings
+      .filter((other) => other.slug !== listing.slug && other.status !== "sold")
+      .sort((a, b) => {
+        const score = (candidate: Listing) =>
+          (candidate.city === listing.city ? 0 : 1_000_000_000) +
+          (candidate.propertyType === listing.propertyType ? 0 : 100_000_000) +
+          Math.abs(candidate.price - listing.price);
+        return score(a) - score(b);
+      })
+      .slice(0, limit);
   }
 }
 

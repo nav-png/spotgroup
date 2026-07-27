@@ -1,7 +1,14 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
-export type LeadType = "cash-offer" | "contact" | "listing-inquiry" | "exclusive-access";
+export type LeadType =
+  | "cash-offer"
+  | "contact"
+  | "listing-inquiry"
+  | "exclusive-access"
+  | "valuation"
+  | "newsletter"
+  | "development-inquiry";
 
 export interface Lead {
   type: LeadType;
@@ -25,7 +32,15 @@ export interface LeadInput {
   source?: unknown;
 }
 
-const leadTypes: LeadType[] = ["cash-offer", "contact", "listing-inquiry", "exclusive-access"];
+const leadTypes: LeadType[] = [
+  "cash-offer",
+  "contact",
+  "listing-inquiry",
+  "exclusive-access",
+  "valuation",
+  "newsletter",
+  "development-inquiry",
+];
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -44,7 +59,8 @@ export function validateLead(input: LeadInput): ValidationResult {
   if (!leadTypes.includes(type)) errors.type = "Unknown form type.";
 
   const name = text(input.name);
-  if (name.length < 2) errors.name = "Please enter your name.";
+  /** The newsletter form only asks for an email address. */
+  if (type !== "newsletter" && name.length < 2) errors.name = "Please enter your name.";
 
   const email = text(input.email);
   if (!emailPattern.test(email)) errors.email = "Please enter a valid email address.";
@@ -68,7 +84,7 @@ export function validateLead(input: LeadInput): ValidationResult {
     ok: true,
     lead: {
       type,
-      name: name.slice(0, 200),
+      name: name.slice(0, 200) || "Newsletter subscriber",
       email: email.slice(0, 200),
       phone: phone ? phone.slice(0, 40) : undefined,
       message: text(input.message).slice(0, 4000) || undefined,
